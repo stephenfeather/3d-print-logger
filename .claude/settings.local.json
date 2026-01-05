@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(continuity_ledger)",
+      "Bash(ls:*)",
+      "Skill(github-search)",
+      "Bash(uv run python:*)",
+      "Bash(eza:*)",
+      "Skill(implement_plan)",
+      "Bash(uv run pytest:*)",
+      "Bash(uv sync:*)",
+      "Bash(uv run:*)",
+      "Bash(DATABASE_URL=\"sqlite:///./data/test_migration.db\" uv run alembic revision:*)",
+      "Bash(DATABASE_URL=\"sqlite:///./data/test_migration.db\" uv run alembic:*)",
+      "Bash(sqlite3:*)",
+      "Bash(fd:*)",
+      "Bash(cat:*)",
+      "Skill(test-driven-development)",
+      "Bash(timeout 30 uv run pytest:*)",
+      "Bash(wc:*)",
+      "Skill(commit)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

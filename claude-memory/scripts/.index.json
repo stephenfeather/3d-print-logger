@@ -1,0 +1,82 @@
+{
+  "files": [
+    {
+      "path": "projects/3d-print-logger-overview.md",
+      "title": "3D Print Logger Project Overview",
+      "category": "projects",
+      "tags": [
+        "3d-printing",
+        "logger",
+        "project-overview"
+      ],
+      "keywords": [
+        "common",
+        "files",
+        "add",
+        "projects",
+        "project-overview",
+        "overview",
+        "running",
+        "tasks",
+        "notes",
+        "locally",
+        "tech",
+        "bash",
+        "features",
+        "important",
+        "key",
+        "resources",
+        "project",
+        "operations",
+        "database",
+        "purpose",
+        "commands",
+        "3d-printing",
+        "stack",
+        "print",
+        "logger"
+      ],
+      "size": 967,
+      "modified": "2026-01-03T08:40:46.874798",
+      "preview": "# 3D Print Logger Project Overview  This is a sample context block for your 3D Print Logger project. Replace this content with actual project information.  ## Project Purpose  [Describe what this project does - e.g., tracks 3D print jobs, materials used, print times, etc.]  ## Tech Stack  - Backend:"
+    },
+    {
+      "path": "guides/getting-started.md",
+      "title": "Getting Started with bloxcue",
+      "category": "guides",
+      "tags": [
+        "bloxcue",
+        "tutorial",
+        "getting-started"
+      ],
+      "keywords": [
+        "next",
+        "block",
+        "tips",
+        "authentication",
+        "reference",
+        "guides",
+        "index",
+        "search",
+        "list",
+        "bash",
+        "steps",
+        "getting-started",
+        "blocks",
+        "getting",
+        "bloxcue",
+        "tutorial",
+        "commands",
+        "started",
+        "creating",
+        "example",
+        "markdown",
+        "api"
+      ],
+      "size": 1432,
+      "modified": "2026-01-03T08:39:15.940866",
+      "preview": "# Getting Started with bloxcue  Welcome! This is your first context block. Here's how to use bloxcue:  ## Creating Blocks  Each block is a markdown file with:  1. **Frontmatter** (the YAML at the top)    - `title`: What this block is about    - `category`: Folder it belongs to    - `tags`: Keywords"
+    }
+  ],
+  "built": "2026-01-03T09:39:25.980796"
+}
