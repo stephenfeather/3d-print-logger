@@ -1,5 +1,5 @@
 # Session: 3d-print-logger
-Updated: 2026-01-06T00:45:00.000Z
+Updated: 2026-01-06T01:30:00.000Z
 
 ## Goal
 Create a hosted application that logs 3D print jobs from Klipper with web-based analytics. Done when:
@@ -93,9 +93,17 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - [x] Analytics endpoints (summary, printer stats, filament, timeline) - 96% coverage
     - [x] Admin endpoints (API key management, system info) - 100% coverage
     - [x] Health endpoint (no auth required)
-- Now: [→] Phase 4: Gcode parser (OrcaSlicer metadata extraction - blocked on sample file)
+  - [x] Phase 4: Gcode Parser (COMPLETE - 35 tests, 95% coverage)
+    - [x] GcodeMetadata dataclass with all JobDetails fields
+    - [x] GcodeParser with OrcaSlicer-specific patterns
+    - [x] Parse header block (slicer info, layer count, z-height)
+    - [x] Parse config section (all slicer settings)
+    - [x] Estimated time parsing (days/hours/minutes/seconds)
+    - [x] Filament usage parsing (grams)
+    - [x] Multi-extruder support (parse first extruder values)
+    - [x] Integration tests with sample gcode files
+- Now: [→] Phase 5: Frontend (Vue.js dashboard)
 - Next:
-  - [ ] Phase 5: Frontend (Vue.js dashboard)
   - [ ] Phase 6: Deployment (Docker, docker-compose)
 
 ## Open Questions
@@ -103,7 +111,7 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
   - ✓ Printer identity: Dedicated `printers` table with name, location, moonraker_url
   - ✓ Duplicate job_ids: Composite unique key (printer_id, job_id)
   - ✓ Timezone: Store all timestamps in UTC, handle display in frontend
-  - **PENDING**: Exact fields for job_details table (need sample OrcaSlicer gcode file)
+  - ✓ Exact fields for job_details table (mapped from OrcaSlicer config keys)
   - ✓ Gcode parsing: On job completion (or upload if implementing upload feature)
 - **ANSWERED**: Moonraker connection resilience
   - ✓ Offline handling: Update last_seen timestamp, exponential backoff reconnection
@@ -146,10 +154,14 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - src/moonraker/handlers.py (event handlers - 17 tests, 84% coverage)
     - src/moonraker/manager.py (connection manager - 14 tests, 86% coverage)
     - tests/test_moonraker/ (48/50 passing, 96% success rate)
-  - Phase 3 - API Layer (IN PROGRESS):
+  - Phase 3 - API Layer (COMPLETE - 58 tests):
     - src/api/ directory (routes, auth)
     - src/api/routes/ (endpoints for printers, jobs, analytics, admin)
-    - tests/test_api/ (new test suite)
+    - tests/test_api/ (58 tests, all passing)
+  - Phase 4 - Gcode Parser (COMPLETE - 35 tests):
+    - src/gcode/parser.py (GcodeParser + GcodeMetadata - 95% coverage)
+    - tests/test_gcode/ (35 tests, all passing)
+    - samples/ (sample OrcaSlicer gcode files for testing)
 - Test commands:
   - Database: `uv run pytest tests/test_database/ -v --cov=src/database`
   - Moonraker: `uv run pytest tests/test_moonraker/ -v --cov=src/moonraker`
@@ -181,7 +193,7 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
    - Vue.js common for frontends in this ecosystem
 
 ## Current Status Summary
-**Phase**: Phase 3 COMPLETE - Ready for Phase 4 Gcode parser (blocked on sample file)
+**Phase**: Phase 4 COMPLETE - Ready for Phase 5 Frontend
 **Completed**:
   - Phase 1: Complete database layer (70 tests, 100% CRUD coverage)
     - 5 SQLAlchemy ORM models fully tested
@@ -197,17 +209,26 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - Job endpoints with pagination/filtering (98% coverage)
     - Analytics endpoints (summary, printer stats, filament, timeline) (96% coverage)
     - Admin endpoints (API key management, system info) (100% coverage)
+  - Phase 4: Gcode Parser (35 tests, 95% coverage)
+    - GcodeMetadata dataclass mapping to JobDetails model
+    - GcodeParser with OrcaSlicer-specific regex patterns
+    - Header + config section parsing
+    - Time/filament/temperature extraction
+    - Multi-extruder support (first extruder values)
 **Total test coverage**:
   - Phase 1: 70 tests passing
   - Phase 2: 48/50 tests passing
   - Phase 3: 58 tests passing
-  - Combined: 176/178 tests passing (98.9%), 88% code coverage
-**Blocking**: Sample OrcaSlicer gcode file (affects Phase 4 only)
-**Next action**: Phase 4 - Gcode parser for OrcaSlicer metadata extraction
+  - Phase 4: 35 tests passing
+  - Combined: 211/213 tests passing (99.1%), 89% code coverage
+**Next action**: Phase 5 - Vue.js frontend dashboard
 **Implementation artifacts**:
   - src/database/ - Complete database layer
   - src/moonraker/ - Complete WebSocket integration layer
   - src/api/ - Complete REST API layer
+  - src/gcode/ - Complete gcode parser
   - tests/test_database/ - 70 database tests
   - tests/test_moonraker/ - 50 integration tests
   - tests/test_api/ - 58 API tests
+  - tests/test_gcode/ - 35 parser tests
+  - samples/ - Sample OrcaSlicer gcode files
