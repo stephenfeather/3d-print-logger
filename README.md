@@ -1,5 +1,7 @@
 # 3D Print Logger
 
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/stephenfeather/3d-print-logger?utm_source=oss&utm_medium=github&utm_campaign=stephenfeather%2F3d-print-logger&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+
 Self-hosted application for logging and analyzing 3D print jobs from multiple Klipper/Moonraker printers.
 
 ## Features
