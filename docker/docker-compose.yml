@@ -1,0 +1,35 @@
+# 3D Print Logger - Docker Compose Configuration
+# Placeholder for Phase 6 deployment implementation
+
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../data:/app/data    # SQLite database
+      - ../logs:/app/logs    # Application logs
+      - ../config.yml:/app/config.yml
+    environment:
+      - CONFIG_PATH=/app/config.yml
+    restart: unless-stopped
+
+  # Optional: MySQL for production deployments
+  # Uncomment and configure for MySQL support
+  # db:
+  #   image: mysql:8
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+  #     MYSQL_DATABASE: printlog
+  #     MYSQL_USER: printlog
+  #     MYSQL_PASSWORD: ${DB_PASSWORD}
+  #   volumes:
+  #     - mysql_data:/var/lib/mysql
+  #   restart: unless-stopped
+
+# volumes:
+#   mysql_data:

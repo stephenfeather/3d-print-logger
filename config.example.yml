@@ -1,0 +1,55 @@
+# 3D Print Logger - Configuration Example
+# Copy this file to config.yml and update with your settings
+
+# Database Configuration
+database:
+  # Database type: sqlite or mysql
+  type: sqlite
+
+  # SQLite configuration (used when type: sqlite)
+  path: ./data/printlog.db
+
+  # MySQL configuration (used when type: mysql)
+  # host: localhost
+  # port: 3306
+  # user: printlog
+  # password: your_secure_password
+  # database: printlog
+
+# Moonraker Connection Settings
+moonraker:
+  # Initial delay before reconnection attempt (seconds)
+  reconnect_delay: 5
+
+  # Maximum delay between reconnection attempts (seconds)
+  max_reconnect_delay: 60
+
+  # Interval for printer health checks (seconds)
+  health_check_interval: 30
+
+# API Server Settings
+api:
+  # Host to bind the server to (0.0.0.0 for all interfaces)
+  host: 0.0.0.0
+
+  # Port to listen on
+  port: 8000
+
+  # CORS allowed origins (for frontend development)
+  cors_origins:
+    - http://localhost:3000
+    - http://localhost:8080
+
+# Logging Configuration
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: INFO
+
+  # Log file path
+  file: ./logs/printlog.log
+
+  # Maximum log file size (bytes) before rotation
+  max_size: 10485760  # 10 MB
+
+  # Number of backup log files to keep
+  backup_count: 5
