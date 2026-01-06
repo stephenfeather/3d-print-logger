@@ -41,9 +41,25 @@ cp .env.example .env
 # Create data directories
 mkdir -p data logs
 
-# Build and start
+# Build and start (with Docker Compose)
 cd docker
 docker compose up -d
+```
+
+**Alternative: Direct Docker commands** (if docker compose plugin is unavailable):
+
+```bash
+# Build the image from project root
+docker build -f docker/Dockerfile -t 3d-print-logger .
+
+# Run the container
+docker run -d \
+  --name print-logger \
+  -p 8000:8000 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/logs:/app/logs \
+  -v $(pwd)/config.yml:/app/config.yml:ro \
+  3d-print-logger
 ```
 
 The application will be available at `http://localhost:8000`.

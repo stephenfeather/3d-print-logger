@@ -82,6 +82,18 @@ curl -X POST http://localhost:8000/api/printers \
   }'
 ```
 
+## Web Interface
+
+The application includes a Vue.js dashboard accessible at `http://localhost:8000/`:
+
+| Page | URL | Description |
+|------|-----|-------------|
+| Dashboard | `/` | Overview with recent jobs, printer status, and summary stats |
+| Printers | `/printers` | Manage printers (add, edit, delete, view status) |
+| Jobs | `/jobs` | Browse job history with filtering and pagination |
+| Analytics | `/analytics` | Charts for success rates, filament usage, and trends |
+| Settings | `/settings` | System info and API key management |
+
 ## API Documentation
 
 Once running, visit:
@@ -112,12 +124,32 @@ pytest --cov=src --cov-report=html
 
 ## Docker
 
-Build and run with Docker:
+Build and run with Docker Compose:
 
 ```bash
+cp config.example.yml config.yml
+mkdir -p data logs
 cd docker
-docker-compose up -d
+docker compose up -d
 ```
+
+**Alternative: Direct Docker commands** (if docker compose is unavailable):
+
+```bash
+# Build the image
+docker build -f docker/Dockerfile -t 3d-print-logger .
+
+# Run the container
+docker run -d \
+  --name print-logger \
+  -p 8000:8000 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/logs:/app/logs \
+  -v $(pwd)/config.yml:/app/config.yml:ro \
+  3d-print-logger
+```
+
+For detailed deployment instructions including MySQL setup, macOS/Colima, and Raspberry Pi deployment, see [INSTALL.md](INSTALL.md).
 
 ## License
 
