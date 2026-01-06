@@ -1,35 +1,57 @@
 # 3D Print Logger - Docker Compose Configuration
-# Placeholder for Phase 6 deployment implementation
-
-version: '3.8'
+# Production deployment configuration
 
 services:
   app:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+    container_name: print-logger
     ports:
-      - "8000:8000"
+      - "${APP_PORT:-8000}:8000"
     volumes:
-      - ../data:/app/data    # SQLite database
-      - ../logs:/app/logs    # Application logs
-      - ../config.yml:/app/config.yml
+      - ../data:/app/data          # SQLite database persistence
+      - ../logs:/app/logs          # Application logs
+      - ../config.yml:/app/config.yml:ro  # Configuration (read-only)
     environment:
       - CONFIG_PATH=/app/config.yml
+      - SERVE_STATIC=true
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - print-logger-network
 
   # Optional: MySQL for production deployments
-  # Uncomment and configure for MySQL support
+  # Uncomment this section and update config.yml to use MySQL
   # db:
   #   image: mysql:8
+  #   container_name: print-logger-db
   #   environment:
-  #     MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-  #     MYSQL_DATABASE: printlog
-  #     MYSQL_USER: printlog
-  #     MYSQL_PASSWORD: ${DB_PASSWORD}
+  #     MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-changeme}
+  #     MYSQL_DATABASE: ${DB_DATABASE:-printlog}
+  #     MYSQL_USER: ${DB_USER:-printlog}
+  #     MYSQL_PASSWORD: ${DB_PASSWORD:-changeme}
   #   volumes:
   #     - mysql_data:/var/lib/mysql
   #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 30s
+  #   networks:
+  #     - print-logger-network
 
+networks:
+  print-logger-network:
+    driver: bridge
+
+# Uncomment if using MySQL
 # volumes:
 #   mysql_data:

@@ -8,14 +8,22 @@ Usage:
     uvicorn src.main:app --reload
 """
 
+import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from src.api.routes import admin, analytics, jobs, printers
 from src.config import get_config
+
+# Determine static files directory
+STATIC_DIR = Path(__file__).parent.parent / "static"
+SERVE_STATIC = STATIC_DIR.exists() and os.getenv("SERVE_STATIC", "true").lower() == "true"
 
 
 @asynccontextmanager
@@ -69,6 +77,27 @@ app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 async def health_check() -> dict:
     """Health check endpoint (no auth required)."""
     return {"status": "healthy"}
+
+
+# Serve static frontend files in production
+if SERVE_STATIC:
+    # Mount static assets (JS, CSS, images)
+    app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
+
+    @app.get("/{full_path:path}", tags=["frontend"])
+    async def serve_spa(full_path: str) -> FileResponse:
+        """
+        Serve the SPA frontend.
+
+        For any path not matching /api/* or /health, serve index.html
+        to allow client-side routing.
+        """
+        # Check if requesting a specific file that exists
+        file_path = STATIC_DIR / full_path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        # Otherwise serve index.html for SPA routing
+        return FileResponse(STATIC_DIR / "index.html")
 
 
 def main() -> None:

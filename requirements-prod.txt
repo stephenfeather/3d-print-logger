@@ -1,0 +1,20 @@
+# 3D Print Logger - Production Dependencies
+# For Docker builds and production deployments
+
+# Web Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# Database
+sqlalchemy>=2.0.0
+pymysql>=1.1.0
+alembic>=1.13.0
+
+# WebSocket Client (for Moonraker)
+websockets>=12.0
+
+# Configuration
+pyyaml>=6.0
+
+# Security
+passlib>=1.7.4

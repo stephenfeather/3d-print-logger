@@ -49,6 +49,8 @@ class LoggingConfig:
 
     level: str = "INFO"
     file: str = "./logs/printlog.log"
+    max_size: int = 10485760  # 10 MB
+    backup_count: int = 5
 
 
 @dataclass

@@ -1,0 +1,86 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+ENV
+env
+.eggs
+*.egg
+*.egg-info
+dist
+build
+*.manifest
+*.spec
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.nox
+coverage.xml
+*.cover
+.hypothesis
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Local development
+data/
+logs/
+*.log
+*.db
+
+# Claude memory/docs
+claude-memory/
+thoughts/
+*.md
+!README.md
+
+# Frontend node_modules (built in Docker)
+frontend/node_modules
+frontend/dist
+node_modules
+
+# Docker
+docker/
+Dockerfile
+docker-compose*.yml
+.docker*
+
+# Cache directories
+.cache
+.claude
+.pytest_cache
+
+# Environment files (use .env.example instead)
+.env
+.env.local
+.env.*.local
+config.yml
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Test data
+tests/
+samples/
+
+# Build artifacts
+3d_print_logger.egg-info/
