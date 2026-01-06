@@ -41,6 +41,19 @@ function getStatusLabel(status: string): string {
     </div>
 
     <DataTable v-else :value="recentJobs.items" :rows="5" class="recent-jobs-table">
+      <Column header="" style="width: 50px">
+        <template #body="{ data }">
+          <div v-if="data.details?.thumbnail_base64" class="thumbnail-mini">
+            <img
+              :src="`data:image/png;base64,${data.details.thumbnail_base64}`"
+              :alt="data.filename"
+            />
+          </div>
+          <div v-else class="thumbnail-placeholder-mini">
+            <i class="pi pi-box"></i>
+          </div>
+        </template>
+      </Column>
       <Column field="filename" header="File">
         <template #body="{ data }">
           <span class="filename" :title="data.filename">{{ data.filename }}</span>
@@ -127,6 +140,27 @@ function getStatusLabel(status: string): string {
   text-overflow: ellipsis;
   white-space: nowrap;
   display: block;
+}
+
+.thumbnail-mini img {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 4px;
+  background-color: var(--p-surface-ground);
+}
+
+.thumbnail-placeholder-mini {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--p-surface-ground);
+  border-radius: 4px;
+  color: var(--p-text-muted-color);
+  opacity: 0.5;
+  font-size: 0.75rem;
 }
 
 :deep(.recent-jobs-table) {

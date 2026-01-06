@@ -13,10 +13,50 @@ from urllib.error import URLError, HTTPError
 
 from sqlalchemy.orm import Session
 
-from src.database.crud import get_print_job, upsert_print_job, update_job_totals
+from src.database.crud import (
+    get_print_job,
+    upsert_print_job,
+    update_job_totals,
+    create_job_details,
+)
+from src.gcode.parser import GcodeParser
 
 
 logger = logging.getLogger(__name__)
+
+# Singleton parser instance
+_parser = GcodeParser()
+
+
+def fetch_gcode_content(moonraker_url: str, filename: str) -> str | None:
+    """
+    Fetch gcode file content from Moonraker.
+
+    Args:
+        moonraker_url: Base URL of Moonraker instance
+        filename: Name of the gcode file to fetch
+
+    Returns:
+        Gcode content as string, or None if fetch failed
+    """
+    base_url = moonraker_url.rstrip("/")
+
+    # URL encode the filename (spaces -> %20, etc.)
+    from urllib.parse import quote
+    encoded_filename = quote(filename, safe="")
+
+    url = f"{base_url}/server/files/gcodes/{encoded_filename}"
+
+    try:
+        request = Request(url)
+        with urlopen(request, timeout=30) as response:
+            return response.read().decode("utf-8", errors="ignore")
+    except (HTTPError, URLError) as e:
+        logger.debug(f"Failed to fetch gcode {filename}: {e}")
+        return None
+    except Exception as e:
+        logger.debug(f"Error fetching gcode {filename}: {e}")
+        return None
 
 
 async def fetch_moonraker_history(
@@ -79,7 +119,8 @@ def _convert_timestamp(unix_ts: float | None) -> datetime | None:
 def import_job_from_moonraker(
     db: Session,
     printer_id: int,
-    job_data: dict[str, Any]
+    job_data: dict[str, Any],
+    moonraker_url: str | None = None
 ) -> tuple[bool, str]:
     """
     Import a single job from Moonraker history data.
@@ -88,6 +129,7 @@ def import_job_from_moonraker(
         db: Database session
         printer_id: ID of the printer
         job_data: Job dictionary from Moonraker history API
+        moonraker_url: Optional Moonraker URL for fetching gcode (for thumbnails)
 
     Returns:
         Tuple of (was_imported: bool, reason: str)
@@ -131,7 +173,21 @@ def import_job_from_moonraker(
     }
 
     try:
-        upsert_print_job(db, printer_id, job_id, **job_record)
+        print_job = upsert_print_job(db, printer_id, job_id, **job_record)
+
+        # Fetch and parse gcode for thumbnail extraction (only for new jobs)
+        if not existing and moonraker_url and print_job:
+            gcode_content = fetch_gcode_content(moonraker_url, filename)
+            if gcode_content:
+                try:
+                    metadata = _parser.parse(gcode_content)
+                    details_data = metadata.to_dict()
+                    # Remove raw_metadata to avoid storing large data
+                    details_data.pop("raw_metadata", None)
+                    create_job_details(db, print_job.id, **details_data)
+                    logger.debug(f"Created job details with thumbnail for {filename}")
+                except Exception as e:
+                    logger.debug(f"Failed to parse gcode for {filename}: {e}")
 
         if existing:
             return True, "updated"
@@ -171,7 +227,9 @@ async def import_printer_history(
     logger.info(f"Importing {len(jobs)} jobs for printer {printer_id}")
 
     for job_data in jobs:
-        success, reason = import_job_from_moonraker(db, printer_id, job_data)
+        success, reason = import_job_from_moonraker(
+            db, printer_id, job_data, moonraker_url=moonraker_url
+        )
 
         if reason == "imported":
             stats["imported"] += 1

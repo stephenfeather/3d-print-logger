@@ -60,6 +60,9 @@ class GcodeMetadata:
     estimated_time: Optional[int] = None  # Seconds
     estimated_filament: Optional[float] = None  # Grams
 
+    # Thumbnail (base64 encoded PNG)
+    thumbnail_base64: Optional[str] = None
+
     # Raw metadata storage
     raw_metadata: dict = field(default_factory=dict)
 
@@ -93,6 +96,12 @@ class GcodeParser:
         "filament_used": re.compile(
             r"^;\s*filament used \[g\]\s*=\s*(.+?)\s*$"
         ),
+        # Thumbnail begin: "; thumbnail begin 160x160 2452"
+        "thumbnail_begin": re.compile(
+            r"^;\s*thumbnail begin\s+(\d+)x(\d+)\s+(\d+)"
+        ),
+        # Thumbnail end: "; thumbnail end"
+        "thumbnail_end": re.compile(r"^;\s*thumbnail end"),
     }
 
     # Field mappings from gcode key to metadata attribute
@@ -176,6 +185,10 @@ class GcodeParser:
                 self._set_field(metadata, key, value)
 
         metadata.raw_metadata = raw_data
+
+        # Extract thumbnail (separate pass for multi-line parsing)
+        metadata.thumbnail_base64 = self._extract_thumbnail(content)
+
         return metadata
 
     def parse_file(self, file_path: Path) -> GcodeMetadata:
@@ -326,3 +339,61 @@ class GcodeParser:
             total_seconds += int(second_match.group(1))
 
         return total_seconds if total_seconds > 0 else None
+
+    def _extract_thumbnail(self, content: str) -> Optional[str]:
+        """
+        Extract the largest thumbnail from gcode content.
+
+        OrcaSlicer embeds thumbnails as base64-encoded PNG images in comments:
+        ; thumbnail begin WIDTHxHEIGHT BYTES
+        ; [base64 lines...]
+        ; thumbnail end
+
+        Args:
+            content: Raw gcode file content.
+
+        Returns:
+            Base64-encoded PNG data for the largest thumbnail, or None.
+        """
+        thumbnails = []  # List of (width, height, base64_data)
+        lines = content.split("\n")
+        i = 0
+
+        while i < len(lines):
+            line = lines[i].strip()
+
+            # Check for thumbnail begin
+            begin_match = self.PATTERNS["thumbnail_begin"].match(line)
+            if begin_match:
+                width = int(begin_match.group(1))
+                height = int(begin_match.group(2))
+                # Collect base64 lines until thumbnail end
+                base64_lines = []
+                i += 1
+
+                while i < len(lines):
+                    thumb_line = lines[i].strip()
+
+                    # Check for thumbnail end
+                    if self.PATTERNS["thumbnail_end"].match(thumb_line):
+                        break
+
+                    # Extract base64 data (strip comment prefix)
+                    if thumb_line.startswith(";"):
+                        data = thumb_line[1:].strip()
+                        if data:  # Skip empty comment lines
+                            base64_lines.append(data)
+                    i += 1
+
+                if base64_lines:
+                    base64_data = "".join(base64_lines)
+                    thumbnails.append((width, height, base64_data))
+
+            i += 1
+
+        if not thumbnails:
+            return None
+
+        # Select the largest thumbnail (by area)
+        largest = max(thumbnails, key=lambda t: t[0] * t[1])
+        return largest[2]

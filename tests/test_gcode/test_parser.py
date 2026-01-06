@@ -342,3 +342,99 @@ class TestEdgeCases:
         parser = GcodeParser()
         result = parser.parse(";  layer_height  =  0.2  \n")
         assert result.layer_height == 0.2
+
+
+class TestThumbnailExtraction:
+    """Test thumbnail extraction from gcode files."""
+
+    # Sample thumbnail block (minimal valid PNG in base64)
+    SAMPLE_THUMBNAIL_BLOCK = """; THUMBNAIL_BLOCK_START
+;
+; thumbnail begin 160x160 100
+; iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk
+; +M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+; thumbnail end
+; THUMBNAIL_BLOCK_END
+"""
+
+    SAMPLE_SMALL_THUMBNAIL_BLOCK = """; THUMBNAIL_BLOCK_START
+;
+; thumbnail begin 112x112 50
+; c21hbGxlcl90aHVtYm5haWxfZGF0YQ==
+; thumbnail end
+; THUMBNAIL_BLOCK_END
+"""
+
+    def test_metadata_has_thumbnail_field(self):
+        """GcodeMetadata should have thumbnail_base64 field."""
+        metadata = GcodeMetadata()
+        assert hasattr(metadata, "thumbnail_base64")
+        assert metadata.thumbnail_base64 is None
+
+    def test_metadata_with_thumbnail(self):
+        """Create metadata with thumbnail populated."""
+        metadata = GcodeMetadata(thumbnail_base64="iVBORw0KGgo=")
+        assert metadata.thumbnail_base64 == "iVBORw0KGgo="
+
+    def test_thumbnail_in_to_dict(self):
+        """Thumbnail should be included in to_dict output."""
+        metadata = GcodeMetadata(thumbnail_base64="test_data")
+        result = metadata.to_dict()
+        assert "thumbnail_base64" in result
+        assert result["thumbnail_base64"] == "test_data"
+
+    def test_extract_thumbnail_from_gcode(self):
+        """Extract thumbnail from gcode content."""
+        parser = GcodeParser()
+        content = "; layer_height = 0.2\n" + self.SAMPLE_THUMBNAIL_BLOCK
+        result = parser.parse(content)
+        assert result.thumbnail_base64 is not None
+        # Should contain the base64 data without comment prefixes
+        assert "iVBORw0KGgo" in result.thumbnail_base64
+
+    def test_no_thumbnail_returns_none(self):
+        """Gcode without thumbnail returns None."""
+        parser = GcodeParser()
+        result = parser.parse("; layer_height = 0.2\n")
+        assert result.thumbnail_base64 is None
+
+    def test_select_largest_thumbnail(self):
+        """When multiple thumbnails exist, select the largest."""
+        parser = GcodeParser()
+        # Large thumbnail first
+        content = self.SAMPLE_THUMBNAIL_BLOCK + self.SAMPLE_SMALL_THUMBNAIL_BLOCK
+        result = parser.parse(content)
+        assert result.thumbnail_base64 is not None
+        # Should contain the larger 160x160 thumbnail data
+        assert "iVBORw0KGgo" in result.thumbnail_base64
+
+    def test_select_largest_thumbnail_reversed_order(self):
+        """Select largest thumbnail regardless of order in file."""
+        parser = GcodeParser()
+        # Small thumbnail first, large second
+        content = self.SAMPLE_SMALL_THUMBNAIL_BLOCK + self.SAMPLE_THUMBNAIL_BLOCK
+        result = parser.parse(content)
+        assert result.thumbnail_base64 is not None
+        # Should still contain the larger 160x160 thumbnail
+        assert "iVBORw0KGgo" in result.thumbnail_base64
+
+    def test_thumbnail_strips_comment_prefix(self):
+        """Base64 data should not include comment prefixes."""
+        parser = GcodeParser()
+        result = parser.parse(self.SAMPLE_THUMBNAIL_BLOCK)
+        if result.thumbnail_base64:
+            assert not result.thumbnail_base64.startswith(";")
+            assert "; " not in result.thumbnail_base64
+
+    def test_thumbnail_from_sample_file(self):
+        """Extract thumbnail from actual sample gcode file."""
+        parser = GcodeParser()
+        samples_dir = Path(__file__).parent.parent.parent / "samples"
+        gcode_files = list(samples_dir.glob("*.gcode"))
+
+        if gcode_files:
+            result = parser.parse_file(gcode_files[0])
+            # OrcaSlicer files should have thumbnails
+            assert result.thumbnail_base64 is not None
+            # Should be valid base64 PNG (starts with PNG header in base64)
+            assert result.thumbnail_base64.startswith("iVBORw0KGgo")

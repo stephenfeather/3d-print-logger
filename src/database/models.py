@@ -167,6 +167,9 @@ class JobDetails(Base, TimestampMixin):
     # Raw metadata storage
     raw_metadata = Column(JSON, nullable=True)
 
+    # Thumbnail (base64 encoded PNG from gcode)
+    thumbnail_base64 = Column(String(100000), nullable=True)
+
     # Relationships
     print_job = relationship("PrintJob", back_populates="job_details")
 

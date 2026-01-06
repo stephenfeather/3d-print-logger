@@ -17,6 +17,7 @@ export interface JobDetails {
   estimated_filament: number | null
   layer_count: number | null
   object_height: number | null
+  thumbnail_base64: string | null
 }
 
 export type JobStatus = 'completed' | 'error' | 'cancelled' | 'printing' | 'paused'

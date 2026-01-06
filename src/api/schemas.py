@@ -140,6 +140,7 @@ class JobDetailsResponse(BaseSchema):
     estimated_filament: Optional[float] = None
     layer_count: Optional[int] = None
     object_height: Optional[float] = None
+    thumbnail_base64: Optional[str] = None
 
 
 class JobResponse(BaseSchema):

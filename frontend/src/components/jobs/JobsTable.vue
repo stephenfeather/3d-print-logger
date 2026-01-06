@@ -135,6 +135,20 @@ const first = computed(() => filters.value.offset)
 
     <template v-else>
       <DataTable :value="jobs.items" class="jobs-table" dataKey="id">
+        <Column header="" style="width: 70px">
+          <template #body="{ data }">
+            <div v-if="data.details?.thumbnail_base64" class="thumbnail-container">
+              <img
+                :src="`data:image/png;base64,${data.details.thumbnail_base64}`"
+                :alt="data.filename"
+                class="job-thumbnail"
+              />
+            </div>
+            <div v-else class="thumbnail-placeholder">
+              <i class="pi pi-box"></i>
+            </div>
+          </template>
+        </Column>
         <Column field="filename" header="File" :sortable="false">
           <template #body="{ data }">
             <span class="filename" :title="data.filename">{{ data.filename }}</span>
@@ -254,6 +268,31 @@ const first = computed(() => filters.value.offset)
 .action-buttons {
   display: flex;
   gap: 0.25rem;
+}
+
+.thumbnail-container {
+  width: 50px;
+  height: 50px;
+}
+
+.job-thumbnail {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
+  background-color: var(--p-surface-ground);
+}
+
+.thumbnail-placeholder {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--p-surface-ground);
+  border-radius: 4px;
+  color: var(--p-text-muted-color);
+  opacity: 0.5;
 }
 
 .jobs-paginator {

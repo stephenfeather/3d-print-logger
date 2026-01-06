@@ -37,8 +37,19 @@ function handleClose() {
   >
     <div v-if="job" class="job-details">
       <div class="detail-header">
-        <h3 class="filename">{{ job.filename }}</h3>
-        <Tag :severity="getStatusColor(job.status)">{{ getStatusLabel(job.status) }}</Tag>
+        <div class="header-content">
+          <div v-if="job.details?.thumbnail_base64" class="detail-thumbnail">
+            <img
+              :src="`data:image/png;base64,${job.details.thumbnail_base64}`"
+              :alt="job.filename"
+              class="detail-thumbnail-img"
+            />
+          </div>
+          <div class="header-text">
+            <h3 class="filename">{{ job.filename }}</h3>
+            <Tag :severity="getStatusColor(job.status)">{{ getStatusLabel(job.status) }}</Tag>
+          </div>
+        </div>
       </div>
 
       <div class="details-grid">
@@ -143,12 +154,33 @@ function handleClose() {
 }
 
 .detail-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--p-surface-border);
+}
+
+.header-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.detail-thumbnail {
+  flex-shrink: 0;
+}
+
+.detail-thumbnail-img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 8px;
+  background-color: var(--p-surface-ground);
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
 .filename {
