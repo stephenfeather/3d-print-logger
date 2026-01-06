@@ -85,6 +85,25 @@ def update_printer_last_seen(db: Session, printer_id: int) -> None:
 # ========== PrintJob CRUD ==========
 
 
+def get_print_job(
+    db: Session, printer_id: int, job_id: str
+) -> Optional[PrintJob]:
+    """
+    Get a print job by printer_id and job_id.
+
+    Args:
+        db: Database session
+        printer_id: Printer ID
+        job_id: Moonraker's job UUID
+
+    Returns:
+        PrintJob if found, None otherwise
+    """
+    return db.query(PrintJob).filter(
+        and_(PrintJob.printer_id == printer_id, PrintJob.job_id == job_id)
+    ).first()
+
+
 def upsert_print_job(
     db: Session, printer_id: int, job_id: str, **job_data
 ) -> PrintJob:
