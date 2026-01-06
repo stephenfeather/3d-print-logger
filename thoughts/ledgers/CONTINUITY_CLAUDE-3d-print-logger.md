@@ -1,5 +1,5 @@
 # Session: 3d-print-logger
-Updated: 2026-01-05T21:00:00.000Z
+Updated: 2026-01-06T06:35:00Z
 
 ## Goal
 Create a hosted application that logs 3D print jobs from Klipper with web-based analytics. Done when:
@@ -117,9 +117,15 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - [x] Phase 5.5: Jobs History (JobsTable, JobFiltersPanel, JobDetailsModal, pagination)
     - [x] Phase 5.6: Analytics Page (ECharts - SuccessRatePie, PrintsByPrinter, FilamentUsage, Timeline)
     - [x] Phase 5.7: Admin/Settings (SystemInfoCard, ApiKeyList, ApiKeyCreateDialog)
-- Now: [→] Ready for Phase 6: Deployment
-- Next:
-  - [ ] Phase 6: Deployment (Docker, docker-compose)
+  - [x] Phase 6: Deployment (Docker, docker-compose) - COMPLETE & TESTED
+  - [x] README updated with frontend URLs and Docker instructions
+  - [x] Moonraker history import feature (import existing jobs from Moonraker)
+    - POST /api/printers/{id}/import-history endpoint
+    - Auto-import on printer creation (BackgroundTasks)
+    - src/moonraker/history.py (fetch and import functions)
+    - Tested: 251 jobs successfully imported from live printer
+- Now: [→] All phases complete - production ready
+- Next: Future enhancements (WebSocket real-time, Spoolman integration)
 
 ## Open Questions
 - **ANSWERED**: Database schema details
@@ -131,7 +137,9 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
 - **ANSWERED**: Moonraker connection resilience
   - ✓ Offline handling: Update last_seen timestamp, exponential backoff reconnection
   - ✓ Reconnection strategy: 5s, 10s, 30s, 60s max delay
-  - **UNCONFIRMED**: Historical backfill from Moonraker's SQLite database (make configurable?)
+  - ✓ Historical backfill: Implemented via REST API (POST /api/printers/{id}/import-history)
+    - Auto-imports on printer creation
+    - Manual import endpoint for on-demand sync
 - **ANSWERED**: Core analytics features
   - ✓ MVP: Per-printer totals + aggregated stats (job_totals table)
   - ✓ Future integrations: Designed for extensibility (JSON columns, auxiliary_data)
@@ -171,6 +179,7 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - src/moonraker/client.py (WebSocket client - 17 tests, 80% coverage)
     - src/moonraker/handlers.py (event handlers - 17 tests, 84% coverage)
     - src/moonraker/manager.py (connection manager - 14 tests, 86% coverage)
+    - src/moonraker/history.py (REST API history import - NEW)
     - tests/test_moonraker/ (48/50 passing, 96% success rate)
   - Phase 3 - API Layer (COMPLETE - 58 tests):
     - src/api/ directory (routes, auth)
@@ -211,7 +220,7 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
    - Vue.js common for frontends in this ecosystem
 
 ## Current Status Summary
-**Phase**: Phase 5 COMPLETE - Ready for Phase 6 Deployment
+**Phase**: Phase 6 COMPLETE - All phases done, ready for production deployment
 **Completed**:
   - Phase 1: Complete database layer (70 tests, 100% CRUD coverage)
     - 5 SQLAlchemy ORM models fully tested
@@ -244,13 +253,21 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - 15+ components organized by feature (common, printers, jobs, analytics, settings)
     - Full CRUD operations for printers and jobs
     - Real-time status polling for printer monitoring
+  - Phase 6: Docker Deployment (complete production stack)
+    - Multi-stage Dockerfile (Node.js frontend build → Python production image)
+    - docker-compose.yml with health checks, networking, volume mounts
+    - Static file serving from FastAPI (serves built frontend in production)
+    - .dockerignore for efficient builds
+    - requirements-prod.txt (production-only dependencies)
+    - .env.example for environment variables
+    - INSTALL.md documentation with deployment guides
 **Backend test coverage**:
   - Phase 1: 70 tests passing
   - Phase 2: 48/50 tests passing
   - Phase 3: 58 tests passing
   - Phase 4: 35 tests passing
   - Combined: 211/213 tests passing (99.1%), 89% code coverage
-**Next action**: Phase 6 - Docker deployment
+**Next action**: Ready for production deployment - run `docker compose up -d` in docker/
 **Implementation artifacts**:
   - src/database/ - Complete database layer
   - src/moonraker/ - Complete WebSocket integration layer
@@ -268,3 +285,10 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
   - tests/test_api/ - 58 API tests
   - tests/test_gcode/ - 35 parser tests
   - samples/ - Sample OrcaSlicer gcode files
+  - docker/ - Docker deployment configuration
+    - docker/Dockerfile - Multi-stage build (frontend + backend)
+    - docker/docker-compose.yml - Production deployment config
+  - .dockerignore - Efficient build exclusions
+  - requirements-prod.txt - Production dependencies
+  - .env.example - Environment variable template
+  - INSTALL.md - Installation and deployment guide
