@@ -53,44 +53,75 @@ function handlePeriodChange(period: TimelinePeriod) {
 
 <style scoped>
 .analytics-page {
-  max-width: 1400px;
+  max-width: 1600px;
+  padding: 0 1rem;
 }
 
 .page-header {
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .page-header h1 {
   margin: 0 0 0.5rem 0;
   color: var(--p-text-color);
+  font-size: 1.75rem;
+  font-weight: 600;
 }
 
 .text-muted {
   color: var(--p-text-muted-color);
   margin: 0;
+  font-size: 0.95rem;
 }
 
 .charts-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
 }
 
 .chart-item {
-  min-height: 350px;
+  min-height: 400px;
 }
 
 .timeline-chart {
-  grid-column: span 2;
+  grid-column: span 3;
+  min-height: 450px;
 }
 
-@media (max-width: 1024px) {
+/* Tablet: 2 columns */
+@media (max-width: 1280px) {
+  .charts-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .timeline-chart {
+    grid-column: span 2;
+  }
+}
+
+/* Mobile: 1 column */
+@media (max-width: 768px) {
+  .analytics-page {
+    padding: 0 0.5rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+
   .charts-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .timeline-chart {
     grid-column: span 1;
+    min-height: 350px;
+  }
+
+  .chart-item {
+    min-height: 350px;
   }
 }
 </style>

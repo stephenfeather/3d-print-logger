@@ -38,8 +38,8 @@ const chartOptions = computed(() => {
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '3%',
-      top: '5%',
+      bottom: '5%',
+      top: '8%',
       containLabel: true,
     },
     xAxis: {
@@ -47,14 +47,15 @@ const chartOptions = computed(() => {
       data: types,
       axisLabel: {
         interval: 0,
-        rotate: types.length > 4 ? 45 : 0,
+        rotate: types.length > 3 ? 30 : 0,
+        fontSize: 12,
       },
     },
     yAxis: {
       type: 'value',
       name: 'Grams',
       nameLocation: 'middle',
-      nameGap: 40,
+      nameGap: 45,
     },
     series: [
       {
@@ -65,6 +66,12 @@ const chartOptions = computed(() => {
           itemStyle: { color: colors[idx % colors.length] },
         })),
         barWidth: '60%',
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: 'rgba(0, 0, 0, 0.3)',
+          },
+        },
       },
     ],
   }
@@ -93,18 +100,24 @@ const chartOptions = computed(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s;
+}
+
+.chart-container:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .chart-title {
   margin: 0 0 1rem;
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: var(--p-text-color);
 }
 
 .chart {
   flex: 1;
-  min-height: 250px;
+  min-height: 300px;
 }
 
 .chart-loading,
@@ -115,12 +128,17 @@ const chartOptions = computed(() => {
   align-items: center;
   justify-content: center;
   color: var(--p-text-muted-color);
-  gap: 0.5rem;
+  gap: 1rem;
 }
 
 .chart-loading i,
 .chart-empty i {
-  font-size: 2rem;
-  opacity: 0.5;
+  font-size: 3rem;
+  opacity: 0.4;
+}
+
+.chart-empty p {
+  margin: 0;
+  font-size: 0.95rem;
 }
 </style>

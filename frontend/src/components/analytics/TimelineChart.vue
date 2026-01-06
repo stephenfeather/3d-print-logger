@@ -43,13 +43,14 @@ const chartOptions = computed(() => {
     },
     legend: {
       data: ['Total', 'Successful', 'Failed'],
-      bottom: 0,
+      bottom: 5,
+      itemGap: 20,
     },
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '15%',
-      top: '5%',
+      bottom: '12%',
+      top: '3%',
       containLabel: true,
     },
     xAxis: {
@@ -60,6 +61,9 @@ const chartOptions = computed(() => {
     yAxis: {
       type: 'value',
       minInterval: 1,
+      name: 'Jobs',
+      nameLocation: 'middle',
+      nameGap: 40,
     },
     series: [
       {
@@ -67,22 +71,43 @@ const chartOptions = computed(() => {
         type: 'line',
         data: total,
         itemStyle: { color: '#3b82f6' },
+        lineStyle: { width: 3 },
         areaStyle: { color: 'rgba(59, 130, 246, 0.1)' },
         smooth: true,
+        emphasis: {
+          itemStyle: {
+            borderWidth: 2,
+            borderColor: '#fff',
+          },
+        },
       },
       {
         name: 'Successful',
         type: 'line',
         data: successful,
         itemStyle: { color: '#22c55e' },
+        lineStyle: { width: 2 },
         smooth: true,
+        emphasis: {
+          itemStyle: {
+            borderWidth: 2,
+            borderColor: '#fff',
+          },
+        },
       },
       {
         name: 'Failed',
         type: 'line',
         data: failed,
         itemStyle: { color: '#ef4444' },
+        lineStyle: { width: 2 },
         smooth: true,
+        emphasis: {
+          itemStyle: {
+            borderWidth: 2,
+            borderColor: '#fff',
+          },
+        },
       },
     ],
   }
@@ -121,6 +146,12 @@ const chartOptions = computed(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s;
+}
+
+.chart-container:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .chart-header {
@@ -129,19 +160,19 @@ const chartOptions = computed(() => {
   align-items: center;
   margin-bottom: 1rem;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .chart-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: var(--p-text-color);
 }
 
 .chart {
   flex: 1;
-  min-height: 300px;
+  min-height: 350px;
 }
 
 .chart-loading,
@@ -152,12 +183,17 @@ const chartOptions = computed(() => {
   align-items: center;
   justify-content: center;
   color: var(--p-text-muted-color);
-  gap: 0.5rem;
+  gap: 1rem;
 }
 
 .chart-loading i,
 .chart-empty i {
-  font-size: 2rem;
-  opacity: 0.5;
+  font-size: 3rem;
+  opacity: 0.4;
+}
+
+.chart-empty p {
+  margin: 0;
+  font-size: 0.95rem;
 }
 </style>

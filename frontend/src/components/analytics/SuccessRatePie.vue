@@ -28,18 +28,20 @@ const chartOptions = computed(() => {
       formatter: '{b}: {c} ({d}%)',
     },
     legend: {
-      orient: 'vertical',
-      right: 10,
-      top: 'center',
+      orient: 'horizontal',
+      bottom: 10,
+      left: 'center',
+      itemGap: 20,
     },
     series: [
       {
         name: 'Print Status',
         type: 'pie',
-        radius: ['40%', '70%'],
+        radius: ['50%', '75%'],
+        center: ['50%', '45%'],
         avoidLabelOverlap: false,
         itemStyle: {
-          borderRadius: 10,
+          borderRadius: 8,
           borderColor: 'var(--p-surface-card)',
           borderWidth: 2,
         },
@@ -50,8 +52,13 @@ const chartOptions = computed(() => {
         emphasis: {
           label: {
             show: true,
-            fontSize: 20,
+            fontSize: 24,
             fontWeight: 'bold',
+          },
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.3)',
           },
         },
         labelLine: {
@@ -90,18 +97,24 @@ const chartOptions = computed(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s;
+}
+
+.chart-container:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .chart-title {
   margin: 0 0 1rem;
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: var(--p-text-color);
 }
 
 .chart {
   flex: 1;
-  min-height: 250px;
+  min-height: 300px;
 }
 
 .chart-loading,
@@ -112,12 +125,17 @@ const chartOptions = computed(() => {
   align-items: center;
   justify-content: center;
   color: var(--p-text-muted-color);
-  gap: 0.5rem;
+  gap: 1rem;
 }
 
 .chart-loading i,
 .chart-empty i {
-  font-size: 2rem;
-  opacity: 0.5;
+  font-size: 3rem;
+  opacity: 0.4;
+}
+
+.chart-empty p {
+  margin: 0;
+  font-size: 0.95rem;
 }
 </style>
