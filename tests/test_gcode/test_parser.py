@@ -438,3 +438,193 @@ class TestThumbnailExtraction:
             assert result.thumbnail_base64 is not None
             # Should be valid base64 PNG (starts with PNG header in base64)
             assert result.thumbnail_base64.startswith("iVBORw0KGgo")
+
+
+class TestFilamentMetadataExtraction:
+    """Test extraction of filament usage and cost metadata (Issue #5)."""
+
+    def test_parse_filament_used_mm_multi_extruder(self):
+        """Parse filament used in millimeters (multi-extruder)."""
+        parser = GcodeParser()
+        result = parser.parse("; filament used [mm] = 3274.48, 4080.36, 0.00, 0.00\n")
+        assert result.filament_used_mm == [3274.48, 4080.36, 0.00, 0.00]
+
+    def test_parse_filament_used_cm3(self):
+        """Parse filament used in cubic centimeters."""
+        parser = GcodeParser()
+        result = parser.parse("; filament used [cm3] = 7.88, 9.81, 0.00, 0.00\n")
+        assert result.filament_used_cm3 == [7.88, 9.81, 0.00, 0.00]
+
+    def test_parse_filament_used_g_multi_extruder(self):
+        """Parse filament used in grams (multi-extruder)."""
+        parser = GcodeParser()
+        result = parser.parse("; filament used [g] = 9.85, 12.27, 0.00, 0.00\n")
+        assert result.filament_used_g == [9.85, 12.27, 0.00, 0.00]
+
+    def test_parse_filament_cost_multi_extruder(self):
+        """Parse per-extruder filament cost."""
+        parser = GcodeParser()
+        result = parser.parse("; filament cost = 0.23, 0.28, 0.00, 0.00\n")
+        assert result.filament_cost == [0.23, 0.28, 0.00, 0.00]
+
+    def test_parse_total_filament_used_g(self):
+        """Parse total filament used across all extruders."""
+        parser = GcodeParser()
+        result = parser.parse("; total filament used [g] = 22.11\n")
+        assert result.total_filament_used_g == pytest.approx(22.11)
+
+    def test_parse_total_filament_cost(self):
+        """Parse total filament cost across all extruders."""
+        parser = GcodeParser()
+        result = parser.parse("; total filament cost = 0.51\n")
+        assert result.total_filament_cost == pytest.approx(0.51)
+
+    def test_filament_used_mm_single_extruder(self):
+        """Parse filament data for single-extruder setup."""
+        parser = GcodeParser()
+        result = parser.parse("; filament used [mm] = 2500.5\n")
+        assert result.filament_used_mm == [2500.5]
+
+    def test_filament_arrays_in_to_dict(self):
+        """Filament arrays should be included in to_dict output."""
+        metadata = GcodeMetadata(
+            filament_used_mm=[3274.48, 4080.36],
+            filament_used_cm3=[7.88, 9.81],
+            filament_used_g=[9.85, 12.27],
+            filament_cost=[0.23, 0.28]
+        )
+        result = metadata.to_dict()
+        assert result["filament_used_mm"] == [3274.48, 4080.36]
+        assert result["filament_used_cm3"] == [7.88, 9.81]
+        assert result["filament_used_g"] == [9.85, 12.27]
+        assert result["filament_cost"] == [0.23, 0.28]
+
+
+class TestConfigBlockExtraction:
+    """Test extraction of full config block (Issue #5)."""
+
+    def test_extract_config_block_basic(self):
+        """Extract config block between markers."""
+        gcode = """; CONFIG_BLOCK_START
+; layer_height = 0.2
+; nozzle_temperature = 220,220,220,220
+; bed_temp = 55
+; CONFIG_BLOCK_END
+"""
+        parser = GcodeParser()
+        result = parser.parse(gcode)
+        assert result.config_block is not None
+        assert result.config_block["layer_height"] == "0.2"
+        assert result.config_block["nozzle_temperature"] == "220,220,220,220"
+        assert result.config_block["bed_temp"] == "55"
+
+    def test_config_block_with_many_settings(self):
+        """Config block handles many settings (100+)."""
+        gcode = "; CONFIG_BLOCK_START\n"
+        # Add 150 settings
+        for i in range(150):
+            gcode += f"; setting_{i} = value_{i}\n"
+        gcode += "; CONFIG_BLOCK_END\n"
+
+        parser = GcodeParser()
+        result = parser.parse(gcode)
+        assert result.config_block is not None
+        assert len(result.config_block) == 150
+        assert result.config_block["setting_0"] == "value_0"
+        assert result.config_block["setting_149"] == "value_149"
+
+    def test_config_block_with_complex_values(self):
+        """Config block handles complex value formats."""
+        gcode = """; CONFIG_BLOCK_START
+; wipe_tower_x = 165,165,165,165,165,165,165,165
+; small_area_infill_flow_compensation_model = 0,0;"\\n0.2,0.4444"
+; filament_settings_id = "eSUN PLA+ @BBL X1C(Test.3mf)"
+; CONFIG_BLOCK_END
+"""
+        parser = GcodeParser()
+        result = parser.parse(gcode)
+        assert result.config_block is not None
+        assert "wipe_tower_x" in result.config_block
+        assert "small_area_infill_flow_compensation_model" in result.config_block
+        assert "filament_settings_id" in result.config_block
+
+    def test_no_config_block_returns_none(self):
+        """Return None when no config block present."""
+        parser = GcodeParser()
+        result = parser.parse("; layer_height = 0.2\n")
+        assert result.config_block is None
+
+    def test_config_block_ignores_non_config_lines(self):
+        """Config block only captures lines within markers."""
+        gcode = """; before_config = should_ignore
+; CONFIG_BLOCK_START
+; inside_config = should_capture
+; CONFIG_BLOCK_END
+; after_config = should_ignore
+"""
+        parser = GcodeParser()
+        result = parser.parse(gcode)
+        assert result.config_block is not None
+        assert "inside_config" in result.config_block
+        assert "before_config" not in result.config_block
+        assert "after_config" not in result.config_block
+
+    def test_config_block_in_to_dict(self):
+        """Config block should be included in to_dict output."""
+        metadata = GcodeMetadata(
+            config_block={"layer_height": "0.2", "bed_temp": "55"}
+        )
+        result = metadata.to_dict()
+        assert "config_block" in result
+        assert result["config_block"]["layer_height"] == "0.2"
+
+
+class TestSlicerInfoStorage:
+    """Test that slicer name and version are now stored (Issue #5)."""
+
+    def test_slicer_info_in_to_dict(self):
+        """Slicer info included in to_dict output."""
+        metadata = GcodeMetadata(
+            slicer_name="OrcaSlicer",
+            slicer_version="2.3.1-dev"
+        )
+        result = metadata.to_dict()
+        assert "slicer_name" in result
+        assert "slicer_version" in result
+        assert result["slicer_name"] == "OrcaSlicer"
+        assert result["slicer_version"] == "2.3.1-dev"
+
+    def test_slicer_fields_exist_on_metadata(self):
+        """GcodeMetadata has slicer fields."""
+        metadata = GcodeMetadata()
+        assert hasattr(metadata, "slicer_name")
+        assert hasattr(metadata, "slicer_version")
+
+    def test_combined_extraction_with_new_fields(self):
+        """Parse combined content with all new fields."""
+        gcode = """; generated by OrcaSlicer 2.3.1-dev on 2026-01-05 at 08:58:14
+; filament used [mm] = 3274.48, 4080.36, 0.00, 0.00
+; filament used [cm3] = 7.88, 9.81, 0.00, 0.00
+; filament used [g] = 9.85, 12.27, 0.00, 0.00
+; filament cost = 0.23, 0.28, 0.00, 0.00
+; total filament used [g] = 22.12
+; total filament cost = 0.51
+; CONFIG_BLOCK_START
+; layer_height = 0.2
+; bed_temp = 55
+; CONFIG_BLOCK_END
+"""
+        parser = GcodeParser()
+        result = parser.parse(gcode)
+
+        # Verify all new fields extracted
+        assert result.slicer_name == "OrcaSlicer"
+        assert result.slicer_version == "2.3.1-dev"
+        assert result.filament_used_mm == [3274.48, 4080.36, 0.00, 0.00]
+        assert result.filament_used_cm3 == [7.88, 9.81, 0.00, 0.00]
+        assert result.filament_used_g == [9.85, 12.27, 0.00, 0.00]
+        assert result.filament_cost == [0.23, 0.28, 0.00, 0.00]
+        assert result.total_filament_used_g == pytest.approx(22.12)
+        assert result.total_filament_cost == pytest.approx(0.51)
+        assert result.config_block is not None
+        assert result.config_block["layer_height"] == "0.2"

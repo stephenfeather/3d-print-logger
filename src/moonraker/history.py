@@ -183,10 +183,8 @@ def import_job_from_moonraker(
                     metadata = _parser.parse(gcode_content)
                     details_data = metadata.to_dict()
 
-                    # Remove fields that don't exist in JobDetails model
+                    # Remove raw_metadata (stored separately)
                     details_data.pop("raw_metadata", None)
-                    details_data.pop("slicer_name", None)
-                    details_data.pop("slicer_version", None)
 
                     create_job_details(db, print_job.id, **details_data)
                     logger.debug(f"Created job details with thumbnail for {filename}")
@@ -300,10 +298,8 @@ async def backfill_job_details(
             metadata = _parser.parse(gcode_content)
             details_data = metadata.to_dict()
 
-            # Remove fields that don't exist in JobDetails model
+            # Remove raw_metadata (stored separately)
             details_data.pop("raw_metadata", None)
-            details_data.pop("slicer_name", None)
-            details_data.pop("slicer_version", None)
 
             create_job_details(db, job.id, **details_data)
             stats["created"] += 1

@@ -158,11 +158,26 @@ class JobDetails(Base, TimestampMixin):
     filament_brand = Column(String(100), nullable=True)
     filament_color = Column(String(50), nullable=True)
 
+    # Slicer information (Issue #5)
+    slicer_name = Column(String(100), nullable=True)
+    slicer_version = Column(String(50), nullable=True)
+
     # Print statistics
     estimated_time = Column(Integer, nullable=True)      # Seconds
     estimated_filament = Column(Float, nullable=True)    # Grams
     layer_count = Column(Integer, nullable=True)
     object_height = Column(Float, nullable=True)         # mm
+
+    # Multi-filament usage and cost (Issue #5)
+    filament_used_mm = Column(JSON, nullable=True)       # Array per-extruder
+    filament_used_cm3 = Column(JSON, nullable=True)      # Array per-extruder
+    filament_used_g = Column(JSON, nullable=True)        # Array per-extruder
+    filament_cost = Column(JSON, nullable=True)          # Array per-extruder
+    total_filament_used_g = Column(Float, nullable=True)  # Total across all
+    total_filament_cost = Column(Float, nullable=True)    # Total cost
+
+    # Config block (Issue #5)
+    config_block = Column(JSON, nullable=True)           # Full config as dict
 
     # Raw metadata storage
     raw_metadata = Column(JSON, nullable=True)

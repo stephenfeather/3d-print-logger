@@ -15,7 +15,7 @@ OrcaSlicer gcode structure:
 import re
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict
 
 
 @dataclass
@@ -60,6 +60,17 @@ class GcodeMetadata:
     estimated_time: Optional[int] = None  # Seconds
     estimated_filament: Optional[float] = None  # Grams
 
+    # Multi-filament usage and cost (Issue #5)
+    filament_used_mm: Optional[List[float]] = None  # Per-extruder in mm
+    filament_used_cm3: Optional[List[float]] = None  # Per-extruder in cm³
+    filament_used_g: Optional[List[float]] = None  # Per-extruder in grams
+    filament_cost: Optional[List[float]] = None  # Per-extruder cost
+    total_filament_used_g: Optional[float] = None  # Total across all extruders
+    total_filament_cost: Optional[float] = None  # Total cost
+
+    # Config block (Issue #5)
+    config_block: Optional[Dict[str, str]] = None
+
     # Thumbnail (base64 encoded PNG)
     thumbnail_base64: Optional[str] = None
 
@@ -96,6 +107,27 @@ class GcodeParser:
         "filament_used": re.compile(
             r"^;\s*filament used \[g\]\s*=\s*(.+?)\s*$"
         ),
+        # New filament metadata patterns (Issue #5)
+        "filament_used_mm": re.compile(
+            r"^;\s*filament used \[mm\]\s*=\s*(.+?)\s*$"
+        ),
+        "filament_used_cm3": re.compile(
+            r"^;\s*filament used \[cm3\]\s*=\s*(.+?)\s*$"
+        ),
+        "filament_used_g": re.compile(
+            r"^;\s*filament used \[g\]\s*=\s*(.+?)\s*$"
+        ),
+        "filament_cost": re.compile(
+            r"^;\s*filament cost\s*=\s*(.+?)\s*$"
+        ),
+        "total_filament_used_g": re.compile(
+            r"^;\s*total filament used \[g\]\s*=\s*(.+?)\s*$"
+        ),
+        "total_filament_cost": re.compile(
+            r"^;\s*total filament cost\s*=\s*(.+?)\s*$"
+        ),
+        "config_block_start": re.compile(r"^;\s*CONFIG_BLOCK_START"),
+        "config_block_end": re.compile(r"^;\s*CONFIG_BLOCK_END"),
         # Thumbnail begin: "; thumbnail begin 160x160 2452"
         "thumbnail_begin": re.compile(
             r"^;\s*thumbnail begin\s+(\d+)x(\d+)\s+(\d+)"
@@ -159,12 +191,56 @@ class GcodeParser:
                 metadata.estimated_time = self._parse_time(time_match.group(1))
                 continue
 
-            # Try to extract filament used
-            filament_match = self.PATTERNS["filament_used"].match(line)
-            if filament_match:
-                metadata.estimated_filament = self._parse_first_value(
-                    filament_match.group(1), separator=","
+            # NEW: Extract multi-filament usage arrays (Issue #5)
+            filament_mm_match = self.PATTERNS["filament_used_mm"].match(line)
+            if filament_mm_match:
+                metadata.filament_used_mm = self._parse_float_array(
+                    filament_mm_match.group(1)
                 )
+                continue
+
+            filament_cm3_match = self.PATTERNS["filament_used_cm3"].match(line)
+            if filament_cm3_match:
+                metadata.filament_used_cm3 = self._parse_float_array(
+                    filament_cm3_match.group(1)
+                )
+                continue
+
+            # filament_used_g and filament_used are the same pattern, extract both
+            filament_g_match = self.PATTERNS["filament_used_g"].match(line)
+            if filament_g_match:
+                # Extract array for new field
+                metadata.filament_used_g = self._parse_float_array(
+                    filament_g_match.group(1)
+                )
+                # Also extract first value for legacy estimated_filament field
+                metadata.estimated_filament = self._parse_first_value(
+                    filament_g_match.group(1), separator=","
+                )
+                continue
+
+            filament_cost_match = self.PATTERNS["filament_cost"].match(line)
+            if filament_cost_match:
+                metadata.filament_cost = self._parse_float_array(
+                    filament_cost_match.group(1)
+                )
+                continue
+
+            # NEW: Extract total values (Issue #5)
+            total_filament_g_match = self.PATTERNS["total_filament_used_g"].match(line)
+            if total_filament_g_match:
+                try:
+                    metadata.total_filament_used_g = float(total_filament_g_match.group(1))
+                except ValueError:
+                    pass
+                continue
+
+            total_cost_match = self.PATTERNS["total_filament_cost"].match(line)
+            if total_cost_match:
+                try:
+                    metadata.total_filament_cost = float(total_cost_match.group(1))
+                except ValueError:
+                    pass
                 continue
 
             # Try config format: "; key = value"
@@ -188,6 +264,9 @@ class GcodeParser:
 
         # Extract thumbnail (separate pass for multi-line parsing)
         metadata.thumbnail_base64 = self._extract_thumbnail(content)
+
+        # NEW: Extract config block (Issue #5)
+        metadata.config_block = self._extract_config_block(content)
 
         return metadata
 
@@ -339,6 +418,67 @@ class GcodeParser:
             total_seconds += int(second_match.group(1))
 
         return total_seconds if total_seconds > 0 else None
+
+    def _parse_float_array(
+        self, value: str, separator: str = ","
+    ) -> Optional[List[float]]:
+        """
+        Parse a comma-separated list of floats.
+
+        Args:
+            value: String like "9.85, 12.27, 0.00, 0.00"
+            separator: Separator character.
+
+        Returns:
+            List of floats, or None if parsing fails.
+        """
+        if not value:
+            return None
+
+        try:
+            parts = value.split(separator)
+            return [float(p.strip()) for p in parts if p.strip()]
+        except (ValueError, TypeError):
+            return None
+
+    def _extract_config_block(self, content: str) -> Optional[Dict[str, str]]:
+        """
+        Extract the entire CONFIG_BLOCK as a dictionary.
+
+        OrcaSlicer places all slicer settings between:
+        ; CONFIG_BLOCK_START
+        ; setting_name = value
+        ; CONFIG_BLOCK_END
+
+        Args:
+            content: Raw gcode file content.
+
+        Returns:
+            Dictionary of all config settings, or None if not found.
+        """
+        lines = content.split("\n")
+        config = {}
+        in_config_block = False
+
+        for line in lines:
+            line = line.strip()
+
+            # Check for config block boundaries
+            if self.PATTERNS["config_block_start"].match(line):
+                in_config_block = True
+                continue
+            if self.PATTERNS["config_block_end"].match(line):
+                break
+
+            if in_config_block and line.startswith(";"):
+                # Parse config line: "; key = value"
+                config_match = self.PATTERNS["config"].match(line)
+                if config_match:
+                    key = config_match.group(1).strip()
+                    value = config_match.group(2).strip()
+                    config[key] = value
+
+        return config if config else None
 
     def _extract_thumbnail(self, content: str) -> Optional[str]:
         """

@@ -3,7 +3,7 @@ Pydantic schemas for API request/response models.
 """
 
 from datetime import datetime
-from typing import Any, Generic, List, Optional, TypeVar
+from typing import Any, Dict, Generic, List, Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -141,6 +141,21 @@ class JobDetailsResponse(BaseSchema):
     layer_count: Optional[int] = None
     object_height: Optional[float] = None
     thumbnail_base64: Optional[str] = None
+
+    # Slicer information (Issue #5)
+    slicer_name: Optional[str] = None
+    slicer_version: Optional[str] = None
+
+    # Multi-filament usage and cost (Issue #5)
+    filament_used_mm: Optional[List[float]] = None
+    filament_used_cm3: Optional[List[float]] = None
+    filament_used_g: Optional[List[float]] = None
+    filament_cost: Optional[List[float]] = None
+    total_filament_used_g: Optional[float] = None
+    total_filament_cost: Optional[float] = None
+
+    # Config block (Issue #5)
+    config_block: Optional[Dict[str, str]] = None
 
 
 class JobResponse(BaseSchema):
