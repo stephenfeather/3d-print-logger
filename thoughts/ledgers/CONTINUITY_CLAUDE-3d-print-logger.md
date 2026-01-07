@@ -1,5 +1,5 @@
 # Session: 3d-print-logger
-Updated: 2026-01-07T18:45:00.000Z
+Updated: 2026-01-07T17:47:43.090Z
 
 ## Goal
 Create a hosted application that logs 3D print jobs from Klipper with web-based analytics. Done when:
@@ -127,7 +127,13 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
   - [x] Frontend UX improvements
     - Updated HTML title tag to "3D Print Logger" (frontend/index.html)
     - Rebuilt and redeployed Docker container with updated frontend
-- Now: [→] All phases complete - production ready
+  - [x] Application versioning
+    - Backend: v0.1.0 (pyproject.toml, src/api/routes/admin.py)
+    - Frontend: v0.1.0 (package.json)
+    - Version displayed in SystemInfoCard (Settings page)
+    - AppFooter component created with version display
+    - Footer added to DashboardLayout (all pages)
+- Now: [→] All phases complete - production ready (v0.1.0)
 - Next: Future enhancements (WebSocket real-time, Spoolman integration)
 
 ## Open Questions

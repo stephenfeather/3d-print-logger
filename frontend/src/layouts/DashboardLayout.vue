@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import AppSidebar from '@/components/common/AppSidebar.vue'
+import AppFooter from '@/components/common/AppFooter.vue'
 
 const sidebarCollapsed = ref(false)
 
@@ -16,6 +17,7 @@ function toggleSidebar() {
       <div class="content-wrapper">
         <router-view />
       </div>
+      <AppFooter />
     </main>
   </div>
 </template>
@@ -31,6 +33,8 @@ function toggleSidebar() {
   flex: 1;
   margin-left: 250px;
   transition: margin-left 0.3s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-collapsed .main-content {
@@ -38,6 +42,7 @@ function toggleSidebar() {
 }
 
 .content-wrapper {
+  flex: 1;
   padding: 1.5rem;
   max-width: 1600px;
 }
