@@ -13,10 +13,30 @@ export interface JobDetails {
   filament_type: string | null
   filament_brand: string | null
   filament_color: string | null
+
+  // Slicer information (Issue #5)
+  slicer_name: string | null
+  slicer_version: string | null
+
+  // Print statistics
   estimated_time: number | null
   estimated_filament: number | null
   layer_count: number | null
   object_height: number | null
+
+  // Multi-filament usage and cost (Issue #5)
+  filament_used_mm: number[] | null
+  filament_used_cm3: number[] | null
+  filament_used_g: number[] | null
+  filament_cost: number[] | null
+  total_filament_used_g: number | null
+  total_filament_cost: number | null
+
+  // Config block (Issue #5)
+  config_block: Record<string, unknown> | null
+  raw_metadata: Record<string, unknown> | null
+
+  // Thumbnail
   thumbnail_base64: string | null
 }
 

@@ -90,6 +90,14 @@ function handleClose() {
         <div v-if="job.details" class="detail-section">
           <h4>Slicer Settings</h4>
           <dl class="detail-list">
+            <div v-if="job.details.slicer_name" class="detail-item">
+              <dt>Slicer</dt>
+              <dd>{{ job.details.slicer_name }}</dd>
+            </div>
+            <div v-if="job.details.slicer_version" class="detail-item">
+              <dt>Version</dt>
+              <dd>{{ job.details.slicer_version }}</dd>
+            </div>
             <div v-if="job.details.layer_height" class="detail-item">
               <dt>Layer Height</dt>
               <dd>{{ job.details.layer_height }}mm</dd>
@@ -134,12 +142,55 @@ function handleClose() {
               <dt>Supports</dt>
               <dd>{{ job.details.support_enabled ? 'Yes' : 'No' }}</dd>
             </div>
+            <div v-if="job.details.total_filament_used_g" class="detail-item">
+              <dt>Total Filament</dt>
+              <dd>{{ job.details.total_filament_used_g.toFixed(2) }}g</dd>
+            </div>
+            <div v-if="job.details.total_filament_cost" class="detail-item">
+              <dt>Total Cost</dt>
+              <dd>${{ job.details.total_filament_cost.toFixed(2) }}</dd>
+            </div>
           </dl>
         </div>
 
         <div v-else class="detail-section no-details">
           <h4>Slicer Settings</h4>
           <p>No detailed metadata available for this job</p>
+        </div>
+
+        <!-- Multi-extruder filament usage (spans full width if present) -->
+        <div
+          v-if="job.details && (job.details.filament_used_g || job.details.filament_cost)"
+          class="detail-section detail-section-full"
+        >
+          <h4>Per-Extruder Filament Usage</h4>
+          <div v-if="job.details.filament_used_g" class="extruder-grid">
+            <div
+              v-for="(amount, index) in job.details.filament_used_g"
+              :key="`extruder-${index}`"
+              class="extruder-card"
+            >
+              <div class="extruder-label">Extruder {{ index + 1 }}</div>
+              <dl class="detail-list">
+                <div v-if="job.details.filament_used_g && job.details.filament_used_g[index]" class="detail-item">
+                  <dt>Weight</dt>
+                  <dd>{{ job.details.filament_used_g[index].toFixed(2) }}g</dd>
+                </div>
+                <div v-if="job.details.filament_used_mm && job.details.filament_used_mm[index]" class="detail-item">
+                  <dt>Length</dt>
+                  <dd>{{ (job.details.filament_used_mm[index] / 1000).toFixed(2) }}m</dd>
+                </div>
+                <div v-if="job.details.filament_used_cm3 && job.details.filament_used_cm3[index]" class="detail-item">
+                  <dt>Volume</dt>
+                  <dd>{{ job.details.filament_used_cm3[index].toFixed(2) }}cm³</dd>
+                </div>
+                <div v-if="job.details.filament_cost && job.details.filament_cost[index]" class="detail-item">
+                  <dt>Cost</dt>
+                  <dd>${{ job.details.filament_cost[index].toFixed(2) }}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -244,5 +295,35 @@ function handleClose() {
 .no-details p {
   color: var(--p-text-muted-color);
   font-style: italic;
+}
+
+.detail-section-full {
+  grid-column: 1 / -1;
+}
+
+.extruder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.extruder-card {
+  background-color: var(--p-surface-ground);
+  border: 1px solid var(--p-surface-border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.extruder-label {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+  color: var(--p-primary-color);
+}
+
+@media (max-width: 600px) {
+  .extruder-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
