@@ -149,7 +149,7 @@ const first = computed(() => filters.value.offset)
             </div>
           </template>
         </Column>
-        <Column field="filename" header="File" :sortable="false">
+        <Column field="filename" header="File" :sortable="true">
           <template #body="{ data }">
             <span class="filename" :title="data.filename">{{ data.filename }}</span>
           </template>
@@ -161,12 +161,12 @@ const first = computed(() => filters.value.offset)
             </Tag>
           </template>
         </Column>
-        <Column field="print_duration" header="Duration" style="width: 100px">
+        <Column field="print_duration" header="Duration" style="width: 100px" :sortable="true">
           <template #body="{ data }">
             {{ formatDuration(data.print_duration) }}
           </template>
         </Column>
-        <Column field="start_time" header="Started" style="width: 180px">
+        <Column field="start_time" header="Started" style="width: 180px" :sortable="true">
           <template #body="{ data }">
             {{ formatDateTime(data.start_time) }}
           </template>
