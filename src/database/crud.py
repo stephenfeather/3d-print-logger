@@ -227,6 +227,29 @@ def create_job_details(db: Session, print_job_id: int, **details_data) -> JobDet
     return details
 
 
+def get_jobs_without_details(db: Session, printer_id: int) -> List[PrintJob]:
+    """
+    Get all print jobs for a printer that don't have job_details records.
+
+    Useful for backfilling historical data.
+
+    Args:
+        db: Database session
+        printer_id: Printer ID to get jobs for
+
+    Returns:
+        List of PrintJob instances without job_details, ordered by start_time
+    """
+    return db.query(PrintJob).filter(
+        and_(
+            PrintJob.printer_id == printer_id,
+            ~PrintJob.id.in_(
+                db.query(JobDetails.print_job_id)
+            )
+        )
+    ).order_by(PrintJob.start_time).all()
+
+
 # ========== ApiKey Management ==========
 
 

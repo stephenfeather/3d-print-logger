@@ -1,5 +1,5 @@
 # Session: 3d-print-logger
-Updated: 2026-01-07T20:45:00.000Z
+Updated: 2026-01-07T21:19:48Z
 
 ## Goal
 Create a hosted application that logs 3D print jobs from Klipper with web-based analytics. Done when:
@@ -152,8 +152,18 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - Test: test_handle_history_updates_printer_last_seen (new test added)
     - Coverage: handlers.py 39% → 84%
     - All 17 handler tests passing (1 pre-existing failure unrelated)
-- Now: [→] Production ready (v0.1.0) - awaiting commit and deployment
-- Next: Future enhancements (WebSocket real-time, Spoolman integration)
+  - [x] Issue #3 fix: Job details backfill (GitHub issue)
+    - Root cause: Historical jobs imported before gcode parsing was implemented
+    - Solution: POST /api/printers/{id}/backfill-details endpoint
+    - Added get_jobs_without_details() to src/database/crud.py
+    - Added backfill_job_details() to src/moonraker/history.py
+    - Fixed field mismatch: GcodeMetadata includes slicer_name/slicer_version not in JobDetails model
+    - Tested on production: 2/251 jobs backfilled (249 failed - gcode files deleted from Moonraker)
+    - Verified: API returns full job_details (slicer settings, thumbnails, estimates)
+- Now: [→] Issue #3 resolved, ready to commit and push
+- Next:
+  - Issue #4: Model images not displaying (investigate thumbnail handling)
+  - Future enhancements (WebSocket real-time, Spoolman integration)
 
 ## Open Questions
 - **ANSWERED**: Database schema details

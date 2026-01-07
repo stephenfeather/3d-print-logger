@@ -182,8 +182,12 @@ def import_job_from_moonraker(
                 try:
                     metadata = _parser.parse(gcode_content)
                     details_data = metadata.to_dict()
-                    # Remove raw_metadata to avoid storing large data
+
+                    # Remove fields that don't exist in JobDetails model
                     details_data.pop("raw_metadata", None)
+                    details_data.pop("slicer_name", None)
+                    details_data.pop("slicer_version", None)
+
                     create_job_details(db, print_job.id, **details_data)
                     logger.debug(f"Created job details with thumbnail for {filename}")
                 except Exception as e:
@@ -248,6 +252,70 @@ async def import_printer_history(
         f"Import complete for printer {printer_id}: "
         f"{stats['imported']} imported, {stats['updated']} updated, "
         f"{stats['skipped']} skipped, {stats['errors']} errors"
+    )
+
+    return stats
+
+
+async def backfill_job_details(
+    db: Session,
+    printer_id: int,
+    moonraker_url: str
+) -> dict[str, int]:
+    """
+    Backfill job_details for jobs that don't have them yet.
+
+    This is useful for historical jobs that were imported before the
+    gcode parsing feature was implemented.
+
+    Args:
+        db: Database session
+        printer_id: ID of the printer
+        moonraker_url: Moonraker base URL to fetch gcode files
+
+    Returns:
+        Dictionary with counts: {"processed": N, "created": N, "errors": N}
+    """
+    from src.database.crud import get_jobs_without_details
+
+    stats = {"processed": 0, "created": 0, "errors": 0}
+
+    # Find all jobs without job_details
+    jobs_without_details = get_jobs_without_details(db, printer_id)
+
+    logger.info(f"Found {len(jobs_without_details)} jobs without details for printer {printer_id}")
+
+    for job in jobs_without_details:
+        stats["processed"] += 1
+
+        # Fetch gcode content
+        gcode_content = fetch_gcode_content(moonraker_url, job.filename)
+        if not gcode_content:
+            logger.debug(f"Could not fetch gcode for {job.filename}")
+            stats["errors"] += 1
+            continue
+
+        # Parse and create job_details
+        try:
+            metadata = _parser.parse(gcode_content)
+            details_data = metadata.to_dict()
+
+            # Remove fields that don't exist in JobDetails model
+            details_data.pop("raw_metadata", None)
+            details_data.pop("slicer_name", None)
+            details_data.pop("slicer_version", None)
+
+            create_job_details(db, job.id, **details_data)
+            stats["created"] += 1
+            logger.debug(f"Created job details for {job.filename}")
+        except Exception as e:
+            logger.error(f"Failed to parse/create details for {job.filename}: {e}")
+            stats["errors"] += 1
+
+    logger.info(
+        f"Backfill complete for printer {printer_id}: "
+        f"{stats['processed']} processed, {stats['created']} created, "
+        f"{stats['errors']} errors"
     )
 
     return stats

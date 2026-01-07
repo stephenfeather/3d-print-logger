@@ -23,7 +23,7 @@ from src.api.schemas import (
 )
 from src.database.engine import get_db
 from src.database.models import ApiKey, Printer, PrintJob
-from src.moonraker.history import import_printer_history
+from src.moonraker.history import backfill_job_details, import_printer_history
 
 logger = logging.getLogger(__name__)
 
@@ -316,4 +316,59 @@ async def import_history(
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"Failed to import history from Moonraker: {str(e)}",
+        )
+
+
+@router.post("/{printer_id}/backfill-details")
+async def backfill_details(
+    printer_id: int,
+    db: Session = Depends(get_db),
+    _api_key: ApiKey = Depends(get_api_key),
+) -> dict:
+    """Backfill job_details for jobs that don't have them yet.
+
+    This is useful for historical jobs that were imported before the
+    gcode parsing feature was implemented. For each job without details,
+    this endpoint will:
+    1. Fetch the gcode file from Moonraker
+    2. Parse the metadata (slicer settings, temps, etc.)
+    3. Create a job_details record
+
+    This operation is idempotent and safe to run multiple times.
+
+    Args:
+        printer_id: ID of the printer to backfill details for
+
+    Returns:
+        Dictionary with backfill statistics: processed, created, errors
+    """
+    printer = db.query(Printer).filter(Printer.id == printer_id).first()
+    if not printer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Printer with id {printer_id} not found",
+        )
+
+    if not printer.moonraker_url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Printer has no Moonraker URL configured",
+        )
+
+    try:
+        stats = await backfill_job_details(
+            db=db,
+            printer_id=printer_id,
+            moonraker_url=printer.moonraker_url,
+        )
+        return {
+            "printer_id": printer_id,
+            "printer_name": printer.name,
+            **stats,
+        }
+    except Exception as e:
+        logger.error(f"Error backfilling details for printer {printer_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Failed to backfill job details: {str(e)}",
         )
