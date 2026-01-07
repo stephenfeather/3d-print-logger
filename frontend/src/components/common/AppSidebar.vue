@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import Button from 'primevue/button'
 
 defineProps<{
@@ -12,6 +13,7 @@ const emit = defineEmits<{
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 interface NavItem {
   label: string
@@ -36,6 +38,11 @@ function isActive(path: string): boolean {
 
 function navigate(to: string) {
   router.push(to)
+}
+
+function handleLogout() {
+  authStore.logout()
+  router.push({ name: 'login' })
 }
 </script>
 
@@ -73,7 +80,19 @@ function navigate(to: string) {
     </nav>
 
     <div class="sidebar-footer">
-      <div v-if="!collapsed" class="version-info">v1.0.0</div>
+      <Button
+        :icon="collapsed ? 'pi pi-sign-out' : undefined"
+        :label="collapsed ? undefined : 'Logout'"
+        severity="secondary"
+        text
+        class="logout-btn"
+        :title="collapsed ? 'Logout' : undefined"
+        @click="handleLogout"
+      >
+        <template v-if="!collapsed" #icon>
+          <i class="pi pi-sign-out"></i>
+        </template>
+      </Button>
     </div>
   </aside>
 </template>
@@ -193,14 +212,17 @@ function navigate(to: string) {
 }
 
 .sidebar-footer {
-  padding: 1rem;
+  padding: 0.5rem;
   border-top: 1px solid var(--p-surface-border);
-  text-align: center;
 }
 
-.version-info {
-  font-size: 0.75rem;
-  color: var(--p-text-muted-color);
+.logout-btn {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.collapsed .logout-btn {
+  justify-content: center;
 }
 
 @media (max-width: 768px) {

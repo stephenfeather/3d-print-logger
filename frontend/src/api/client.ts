@@ -1,4 +1,5 @@
 import axios, { type AxiosInstance } from 'axios'
+import router from '@/router'
 
 const API_KEY_STORAGE_KEY = '3dp_api_key'
 
@@ -24,8 +25,13 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Could redirect to setup/login page
-      console.error('API key invalid or missing')
+      // Clear invalid API key
+      clearApiKey()
+
+      // Redirect to login page
+      if (router.currentRoute.value.name !== 'login') {
+        router.push({ name: 'login' })
+      }
     }
     return Promise.reject(error)
   },
@@ -46,3 +52,6 @@ export function clearApiKey(): void {
 export function hasApiKey(): boolean {
   return !!localStorage.getItem(API_KEY_STORAGE_KEY)
 }
+
+// Export as 'api' for convenience
+export { apiClient as api }
