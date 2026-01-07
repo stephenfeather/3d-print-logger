@@ -1,5 +1,5 @@
 # Session: 3d-print-logger
-Updated: 2026-01-06T06:35:00Z
+Updated: 2026-01-07T18:45:00.000Z
 
 ## Goal
 Create a hosted application that logs 3D print jobs from Klipper with web-based analytics. Done when:
@@ -124,6 +124,9 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - Auto-import on printer creation (BackgroundTasks)
     - src/moonraker/history.py (fetch and import functions)
     - Tested: 251 jobs successfully imported from live printer
+  - [x] Frontend UX improvements
+    - Updated HTML title tag to "3D Print Logger" (frontend/index.html)
+    - Rebuilt and redeployed Docker container with updated frontend
 - Now: [→] All phases complete - production ready
 - Next: Future enhancements (WebSocket real-time, Spoolman integration)
 
