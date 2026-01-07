@@ -1,5 +1,5 @@
 # Session: 3d-print-logger
-Updated: 2026-01-08T01:15:00.000Z
+Updated: 2026-01-07T20:45:00.000Z
 
 ## Goal
 Create a hosted application that logs 3D print jobs from Klipper with web-based analytics. Done when:
@@ -146,7 +146,13 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - Logout button added to sidebar footer
     - Bootstrap API key generator script (generate_api_key.py)
     - Docker image rebuilt and redeployed with auth flow
-- Now: [→] All phases complete - production ready with auth (v0.1.0)
+  - [x] Bug fix: Printer last_seen tracking (TDD approach)
+    - Issue: Printers not marked as "seen" when only history events received
+    - Fix: Added update_printer_last_seen() to handle_history_changed handler
+    - Test: test_handle_history_updates_printer_last_seen (new test added)
+    - Coverage: handlers.py 39% → 84%
+    - All 17 handler tests passing (1 pre-existing failure unrelated)
+- Now: [→] Production ready (v0.1.0) - awaiting commit and deployment
 - Next: Future enhancements (WebSocket real-time, Spoolman integration)
 
 ## Open Questions

@@ -151,6 +151,9 @@ async def handle_history_changed(
                 f"Unknown history action '{action}' for printer {printer_id}"
             )
 
+        # Update printer last_seen timestamp
+        update_printer_last_seen(db, printer_id)
+
     except Exception as e:
         logger.error(
             f"Error handling history change for printer {printer_id}: {e}"

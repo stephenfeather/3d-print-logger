@@ -343,6 +343,38 @@ class TestHistoryChangedHandler:
         assert jobs[0].job_id == "complete-history-job"
         assert jobs[0].filename == "complete_print.gcode"
 
+    @pytest.mark.asyncio
+    async def test_handle_history_updates_printer_last_seen(self, db_session, sample_printer):
+        """Test handle_history_changed updates printer's last_seen timestamp."""
+        from src.database.crud import get_printer
+
+        # Verify printer initially has no last_seen
+        printer = get_printer(db_session, sample_printer.id)
+        assert printer.last_seen is None
+
+        # Send history event
+        job_data = {
+            "job_id": "test-job-789",
+            "filename": "test.gcode",
+            "start_time": datetime.utcnow().timestamp(),
+            "end_time": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
+            "print_duration": 3600,
+            "filament_used": 500.0,
+            "status": "completed"
+        }
+
+        params = {
+            "action": "finished",
+            "job": job_data
+        }
+
+        await handle_history_changed(sample_printer.id, params, db_session)
+
+        # Verify last_seen was updated
+        db_session.refresh(printer)
+        assert printer.last_seen is not None
+        assert (datetime.utcnow() - printer.last_seen).total_seconds() < 5
+
 
 class TestHandlerEdgeCases:
     """Test edge cases and error handling."""
