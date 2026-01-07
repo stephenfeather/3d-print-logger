@@ -1,5 +1,5 @@
 # Session: 3d-print-logger
-Updated: 2026-01-07T21:19:48Z
+Updated: 2026-01-07T21:50:00Z
 
 ## Goal
 Create a hosted application that logs 3D print jobs from Klipper with web-based analytics. Done when:
@@ -160,10 +160,19 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - Fixed field mismatch: GcodeMetadata includes slicer_name/slicer_version not in JobDetails model
     - Tested on production: 2/251 jobs backfilled (249 failed - gcode files deleted from Moonraker)
     - Verified: API returns full job_details (slicer settings, thumbnails, estimates)
-- Now: [→] Issue #3 resolved, ready to commit and push
+    - Committed: deb7343
+  - [x] Issue #4 fix: Model images not displaying (GitHub issue - SAME ROOT CAUSE)
+    - Root cause: Same field mismatch bug prevented thumbnail extraction during initial import
+    - Fix: Same commit (deb7343) resolved both issues
+    - End-to-end test: Uploaded Cube_ASA_11m50s.gcode and started print
+    - Verified: Job #253 captured thumbnail (1432 chars) + all metadata
+    - Parser test: Successfully extracted thumbnail from uploaded gcode
+    - API test: GET /api/jobs/253 returns thumbnail in details
+    - Both issues closed on GitHub with explanations
+- Now: [→] Issues #3 and #4 resolved, tested, and committed (deb7343)
 - Next:
-  - Issue #4: Model images not displaying (investigate thumbnail handling)
   - Future enhancements (WebSocket real-time, Spoolman integration)
+  - Consider writing tests for backfill functionality (currently manual testing only)
 
 ## Open Questions
 - **ANSWERED**: Database schema details
