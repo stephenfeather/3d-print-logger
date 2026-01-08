@@ -68,17 +68,25 @@ class MoonrakerClient:
             ws_url = ws_url.rstrip("/") + "/websocket"
         return ws_url
 
-    async def connect(self) -> None:
+    async def _establish_connection(self) -> None:
         """
         Establish WebSocket connection and subscribe to events.
 
-        Connects to Moonraker, subscribes to print_stats and
-        history notifications, and starts the listen loop.
+        Internal method that creates the WebSocket and subscribes to events
+        without spawning a new listen task. Used for both initial connection
+        and reconnection.
 
         Raises:
             ConnectionError: If connection fails
         """
         try:
+            # Close old connection if exists
+            if self.ws:
+                try:
+                    await self.ws.close()
+                except Exception:
+                    pass  # Ignore errors closing old connection
+
             logger.info(f"Connecting to Moonraker at {self.ws_url}")
             self.ws = await websockets.connect(self.ws_url)
             logger.info(f"Connected to printer {self.printer_id}")
@@ -96,13 +104,25 @@ class MoonrakerClient:
             # Note: History notifications (notify_history_changed) are sent
             # automatically by Moonraker, no subscription needed
 
-            # Start listen loop
-            self.running = True
-            asyncio.create_task(self.listen())
-
         except Exception as e:
             logger.error(f"Failed to connect to printer {self.printer_id}: {e}")
             raise ConnectionError(f"Failed to connect to {self.ws_url}") from e
+
+    async def connect(self) -> None:
+        """
+        Connect to Moonraker and start listen loop.
+
+        Public method for initial connection. Establishes WebSocket
+        connection and spawns the listen task.
+
+        Raises:
+            ConnectionError: If connection fails
+        """
+        await self._establish_connection()
+
+        # Start listen loop (only on initial connect, not reconnect)
+        self.running = True
+        asyncio.create_task(self.listen())
 
     async def disconnect(self) -> None:
         """
@@ -228,6 +248,10 @@ class MoonrakerClient:
         """
         Reconnect to Moonraker with exponential backoff.
 
+        Re-establishes the WebSocket connection without spawning a new
+        listen task. The existing listen loop will continue using the
+        new connection.
+
         Attempts to reconnect with delays: 5s, 10s, 30s, 60s (max).
 
         Args:
@@ -252,7 +276,9 @@ class MoonrakerClient:
 
             try:
                 await asyncio.sleep(delay)
-                await self.connect()
+                # Use _establish_connection() instead of connect()
+                # to avoid spawning a new listen task
+                await self._establish_connection()
                 logger.info(f"Successfully reconnected printer {self.printer_id}")
                 return True
             except Exception as e:
