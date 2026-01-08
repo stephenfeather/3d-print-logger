@@ -28,6 +28,8 @@ services:
 
   # Optional: MySQL for production deployments
   # Uncomment this section and update config.yml to use MySQL
+  # SECURITY WARNING: The default passwords below ("changeme") are NOT secure!
+  # Always set unique, strong passwords in your .env file before deployment.
   # db:
   #   image: mysql:8
   #   container_name: print-logger-db

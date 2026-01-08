@@ -128,6 +128,13 @@ For larger deployments or better performance, use MySQL:
 1. Edit `docker/docker-compose.yml` and uncomment the `db` service and `volumes` section.
 
 2. Update `.env` with MySQL credentials:
+
+   **SECURITY WARNING**: Always use unique, strong passwords for production deployments!
+   - Use different passwords for `DB_ROOT_PASSWORD` and `DB_PASSWORD`
+   - Minimum 16 characters with mixed case, numbers, and symbols
+   - Never reuse passwords from other systems
+   - Consider using a password manager to generate and store credentials
+
    ```bash
    DB_ROOT_PASSWORD=your_secure_root_password
    DB_DATABASE=printlog
