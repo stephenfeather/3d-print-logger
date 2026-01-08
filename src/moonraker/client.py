@@ -86,8 +86,15 @@ class MoonrakerClient:
             # Subscribe to print_stats for status updates
             await self.subscribe("print_stats")
 
-            # Subscribe to history notifications
-            await self.subscribe("notify_history_changed")
+            # Subscribe to virtual_sdcard for print progress
+            await self.subscribe("virtual_sdcard")
+
+            # Query current state immediately after subscribing
+            # This ensures we get the initial print_stats even if not changing
+            await self.query_printer_objects()
+
+            # Note: History notifications (notify_history_changed) are sent
+            # automatically by Moonraker, no subscription needed
 
             # Start listen loop
             self.running = True
@@ -140,6 +147,33 @@ class MoonrakerClient:
             logger.error(
                 f"Failed to subscribe printer {self.printer_id} "
                 f"to {object_name}: {e}"
+            )
+
+    async def query_printer_objects(self) -> None:
+        """
+        Query current printer object states.
+
+        Requests current values for subscribed objects (print_stats, virtual_sdcard).
+        The response will trigger a status update event with all current values.
+        """
+        if not self.ws:
+            raise RuntimeError(
+                f"WebSocket not connected for printer {self.printer_id}"
+            )
+
+        request = {
+            "jsonrpc": "2.0",
+            "method": "printer.objects.query",
+            "params": {"objects": {"print_stats": None, "virtual_sdcard": None}},
+            "id": random.randint(1, 10000),
+        }
+
+        try:
+            await self.ws.send(json.dumps(request))
+            logger.info(f"Queried printer {self.printer_id} objects")
+        except Exception as e:
+            logger.error(
+                f"Failed to query printer {self.printer_id} objects: {e}"
             )
 
     async def listen(self) -> None:

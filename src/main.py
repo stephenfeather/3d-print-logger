@@ -8,6 +8,7 @@ Usage:
     uvicorn src.main:app --reload
 """
 
+import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -20,6 +21,13 @@ from fastapi.staticfiles import StaticFiles
 
 from src.api.routes import admin, analytics, jobs, printers
 from src.config import get_config
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s:%(name)s:%(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Determine static files directory
 STATIC_DIR = Path(__file__).parent.parent / "static"
@@ -34,19 +42,33 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Handles startup and shutdown tasks for the application.
     """
     # Startup
-    # Note: Database initialization happens via get_db dependency
-    # Moonraker manager start moved to background task
-    # to avoid blocking startup if printers are offline
-    yield
-    # Shutdown
-    # Clean up Moonraker connections if manager is initialized
-    try:
-        from src.moonraker.manager import MoonrakerManager
+    from src.database.engine import get_db
+    from src.moonraker.manager import MoonrakerManager
 
+    logger.info("Starting application")
+
+    # Start Moonraker manager and connect to printers
+    db = next(get_db())
+    try:
+        manager = MoonrakerManager.get_instance()
+        await manager.start(db)
+        logger.info("Moonraker manager initialized")
+    except Exception as e:
+        logger.error(f"Failed to start Moonraker manager: {e}")
+        # Continue startup even if Moonraker fails (printers may be offline)
+    finally:
+        db.close()
+
+    yield
+
+    # Shutdown
+    logger.info("Shutting down application")
+    try:
         manager = MoonrakerManager.get_instance()
         await manager.stop()
-    except Exception:
-        pass  # Manager may not be initialized
+        logger.info("Moonraker manager stopped")
+    except Exception as e:
+        logger.error(f"Error stopping Moonraker manager: {e}")
 
 
 app = FastAPI(

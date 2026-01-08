@@ -130,13 +130,28 @@ class MoonrakerManager:
         Route event to appropriate handler.
 
         Dispatches events to specific handlers based on event type.
+        Handles both JSON-RPC notifications (method/params) and responses (result/id).
 
         Args:
             printer_id: ID of printer sending event
             event: Event data dictionary
         """
+        # Check if this is a JSON-RPC response (has "result" field)
+        if "result" in event:
+            # This is a response to a query, process the status data
+            result = event.get("result", {})
+            if "status" in result:
+                # Query response format: {"result": {"status": {objects}, "eventtime": ...}}
+                status_data = [result["status"], result.get("eventtime", 0)]
+                logger.debug(f"RPC response from printer {printer_id}, status keys={list(result['status'].keys())}")
+                await handle_status_update(printer_id, status_data)
+            return
+
+        # Handle notifications (method/params)
         method = event.get("method")
         params = event.get("params", {})
+
+        logger.debug(f"Event from printer {printer_id}: method={method}")
 
         if method == "notify_status_update":
             await handle_status_update(printer_id, params)

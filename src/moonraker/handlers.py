@@ -34,7 +34,7 @@ def _get_db_session() -> Session:
 
 
 async def handle_status_update(
-    printer_id: int, params: dict, db: Optional[Session] = None
+    printer_id: int, params, db: Optional[Session] = None
 ) -> None:
     """
     Handle print_stats status update event.
@@ -44,7 +44,7 @@ async def handle_status_update(
 
     Args:
         printer_id: ID of printer sending event
-        params: Event parameters containing print_stats
+        params: Event parameters - list [objects_dict, eventtime] from Moonraker
         db: Optional database session (will create if not provided)
     """
     should_close_db = False
@@ -53,7 +53,16 @@ async def handle_status_update(
         should_close_db = True
 
     try:
-        print_stats = params.get("print_stats", {})
+        # Moonraker sends params as [objects_dict, eventtime]
+        if isinstance(params, list) and len(params) > 0:
+            objects = params[0]
+        elif isinstance(params, dict):
+            objects = params
+        else:
+            logger.warning(f"Unexpected params type for printer {printer_id}: {type(params)}")
+            return
+
+        print_stats = objects.get("print_stats", {})
         state = print_stats.get("state")
 
         if not state:
