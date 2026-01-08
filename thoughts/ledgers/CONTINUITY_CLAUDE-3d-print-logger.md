@@ -1,5 +1,5 @@
 # Session: 3d-print-logger
-Updated: 2026-01-07T21:50:00Z
+Updated: 2026-01-08T01:49:52.158Z
 
 ## Goal
 Create a hosted application that logs 3D print jobs from Klipper with web-based analytics. Done when:
@@ -169,9 +169,26 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - Parser test: Successfully extracted thumbnail from uploaded gcode
     - API test: GET /api/jobs/253 returns thumbnail in details
     - Both issues closed on GitHub with explanations
-- Now: [→] Issues #3 and #4 resolved, tested, and committed (deb7343)
+  - [x] Real-time WebSocket tracking fixes (PRODUCTION CRITICAL)
+    - Issue: Print jobs not being tracked in real-time despite active print running
+    - Root causes identified and fixed (7 separate issues):
+      1. MoonrakerManager never started on application startup (dormant)
+      2. No logging configuration (connection status invisible)
+      3. Invalid subscription to "notify_history_changed" (not a valid Moonraker object)
+      4. Missing subscription to "virtual_sdcard" for print progress
+      5. No initial state query after subscribing (only got changes, not current state)
+      6. Event handler expected dict params, but Moonraker sends list [objects_dict, eventtime]
+      7. JSON-RPC query responses not handled (only handled notifications)
+    - Applied database migration ypdqxrr704l1 (added slicer_name/slicer_version to job_details)
+    - Fixed stuck job ID 242 in database (6-month-old job stuck in "printing" status)
+    - Fixed printer status endpoint to query active jobs instead of returning null state
+    - Added capitalize() formatter for frontend status display
+    - Verified: Real-time tracking working (Job #260 actively updating duration/filament)
+    - Commits: bc5b9a4, d9c3bbc, 006c1a6
+- Now: [→] Production system fully operational with real-time tracking
 - Next:
-  - Future enhancements (WebSocket real-time, Spoolman integration)
+  - Monitor production system for stability
+  - Future enhancements (WebSocket real-time updates for frontend, Spoolman integration)
   - Consider writing tests for backfill functionality (currently manual testing only)
 
 ## Open Questions
@@ -277,7 +294,7 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
    - Vue.js common for frontends in this ecosystem
 
 ## Current Status Summary
-**Phase**: Production Ready - All phases complete with authentication and error handling
+**Phase**: Production Operational - Real-time tracking verified and working
 **Completed**:
   - Phase 1: Complete database layer (70 tests, 100% CRUD coverage)
     - 5 SQLAlchemy ORM models fully tested
@@ -333,7 +350,13 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
   - Phase 3: 58 tests passing
   - Phase 4: 35 tests passing
   - Combined: 211/213 tests passing (99.1%), 89% code coverage
-**Next action**: Production deployed and running at http://localhost:8000 (use /login to authenticate)
+**Current State**:
+  - Production deployed and operational at http://localhost:8000
+  - Real-time WebSocket tracking: ✅ Active and verified
+  - Printer connection: ✅ Connected to Qidi Q1 Pro at http://10.1.1.211:7125/
+  - Active print tracking: ✅ Job #260 updating in real-time (duration, filament usage)
+  - Dashboard status: ✅ Displaying "Printing" with current file
+  - Last commits: bc5b9a4 (WebSocket fixes), d9c3bbc (status endpoint), 006c1a6 (capitalization)
 **Implementation artifacts**:
   - src/database/ - Complete database layer
   - src/moonraker/ - Complete WebSocket integration layer

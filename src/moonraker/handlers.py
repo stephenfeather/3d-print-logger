@@ -22,6 +22,30 @@ from src.database.models import PrintJob
 logger = logging.getLogger(__name__)
 
 
+def _strip_cache_path(filename: str) -> str:
+    """
+    Strip .cache/ directory prefix from filename.
+
+    Since all files on Moonraker printers are stored in .cache/,
+    this prefix is redundant and can be removed for cleaner display.
+
+    Args:
+        filename: Original filename (may include .cache/ prefix)
+
+    Returns:
+        Cleaned filename without .cache/ prefix
+
+    Examples:
+        >>> _strip_cache_path(".cache/test.gcode")
+        'test.gcode'
+        >>> _strip_cache_path("test.gcode")
+        'test.gcode'
+    """
+    if filename.startswith(".cache/"):
+        return filename[7:]  # Remove ".cache/" (7 characters)
+    return filename
+
+
 def _get_db_session() -> Session:
     """
     Get a database session for event handlers.
@@ -69,7 +93,7 @@ async def handle_status_update(
             logger.debug(f"No state in print_stats for printer {printer_id}")
             return
 
-        filename = print_stats.get("filename", "unknown")
+        filename = _strip_cache_path(print_stats.get("filename", "unknown"))
         print_duration = print_stats.get("print_duration", 0.0)
         filament_used = print_stats.get("filament_used", 0.0)
 
@@ -302,7 +326,7 @@ async def _sync_finished_job(
         db: Database session
     """
     job_id = job_data.get("job_id", "unknown")
-    filename = job_data.get("filename", "unknown")
+    filename = _strip_cache_path(job_data.get("filename", "unknown"))
     status = job_data.get("status", "completed")
 
     # Convert timestamp fields if present
@@ -355,7 +379,7 @@ async def _sync_added_job(
         db: Database session
     """
     job_id = job_data.get("job_id", "unknown")
-    filename = job_data.get("filename", "unknown")
+    filename = _strip_cache_path(job_data.get("filename", "unknown"))
 
     start_time = datetime.utcnow()
     if "start_time" in job_data and job_data["start_time"]:

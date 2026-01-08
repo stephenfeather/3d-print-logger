@@ -20,6 +20,7 @@ from src.database.crud import (
     create_job_details,
 )
 from src.gcode.parser import GcodeParser
+from src.moonraker.handlers import _strip_cache_path
 
 
 logger = logging.getLogger(__name__)
@@ -142,7 +143,7 @@ def import_job_from_moonraker(
     if not job_id:
         return False, "error: missing job_id"
 
-    filename = job_data.get("filename", "unknown")
+    filename = _strip_cache_path(job_data.get("filename", "unknown"))
 
     # Check if job already exists
     existing = get_print_job(db, printer_id, job_id)
