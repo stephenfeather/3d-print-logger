@@ -140,3 +140,15 @@ export function formatTemp(temp: number | null | undefined): string {
   }
   return `${temp}°C`
 }
+
+/**
+ * Capitalize first letter of a string
+ * @param str - String to capitalize
+ * @returns Capitalized string
+ */
+export function capitalize(str: string | null | undefined): string {
+  if (!str) {
+    return ''
+  }
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}

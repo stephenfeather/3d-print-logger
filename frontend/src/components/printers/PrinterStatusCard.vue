@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { usePrinterStatus } from '@/composables/usePrinters'
-import { formatRelativeTime, formatPercent } from '@/utils/formatters'
+import { formatRelativeTime, formatPercent, capitalize } from '@/utils/formatters'
 import type { Printer } from '@/types/printer'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
@@ -32,7 +32,7 @@ const statusSeverity = computed(() => {
 
 const statusLabel = computed(() => {
   if (!status.value?.is_connected) return 'Offline'
-  return status.value?.state || 'Idle'
+  return capitalize(status.value?.state) || 'Idle'
 })
 
 const isCurrentlyPrinting = computed(
