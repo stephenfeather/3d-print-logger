@@ -4,6 +4,8 @@
 
 Self-hosted application for logging and analyzing 3D print jobs from multiple Klipper/Moonraker printers.
 
+![3D Print Logger Dashboard](docs/images/dashboard-screenshot.png)
+
 ## Features
 
 - **Multi-Printer Support**: Monitor and log jobs from multiple Klipper/Moonraker printers simultaneously
