@@ -187,7 +187,7 @@ async def get_printer_status(
 ) -> PrinterStatusResponse:
     """Get the current status of a printer.
 
-    This returns the cached status from the database.
+    This returns the cached status from the database based on active jobs.
     For real-time status, use the WebSocket endpoint.
     """
     printer = db.query(Printer).filter(Printer.id == printer_id).first()
@@ -197,15 +197,36 @@ async def get_printer_status(
             detail=f"Printer with id {printer_id} not found",
         )
 
-    # Return status based on available data
-    # In future, this will integrate with the Moonraker manager
+    # Query for active job (printing or paused)
+    active_job = (
+        db.query(PrintJob)
+        .filter(
+            PrintJob.printer_id == printer_id,
+            PrintJob.status.in_(["printing", "paused"])
+        )
+        .order_by(PrintJob.start_time.desc())
+        .first()
+    )
+
+    # Determine state and current file from active job
+    state = None
+    current_file = None
+    progress = None
+
+    if active_job:
+        state = active_job.status  # "printing" or "paused"
+        current_file = active_job.filename
+        # Calculate progress if we have duration estimates
+        # Note: This is approximate, real-time progress would come from virtual_sdcard
+        progress = None  # TODO: Calculate from print_duration vs estimated_time
+
     return PrinterStatusResponse(
         printer_id=printer.id,
         name=printer.name,
         is_connected=printer.last_seen is not None,
-        state=None,  # Would come from live Moonraker connection
-        progress=None,
-        current_file=None,
+        state=state,
+        progress=progress,
+        current_file=current_file,
         error=None,
     )
 
