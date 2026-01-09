@@ -1,5 +1,5 @@
 # Session: 3d-print-logger
-Updated: 2026-01-08T01:49:52.158Z
+Updated: 2026-01-09T21:52:00.000Z
 
 ## Goal
 Create a hosted application that logs 3D print jobs from Klipper with web-based analytics. Done when:
@@ -185,9 +185,17 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - Added capitalize() formatter for frontend status display
     - Verified: Real-time tracking working (Job #260 actively updating duration/filament)
     - Commits: bc5b9a4, d9c3bbc, 006c1a6
-- Now: [→] Production system fully operational with real-time tracking
+  - [x] Issue #8: Minimal Details for Printers (COMPLETE)
+    - Added 12 new printer fields (type, make, model, description, specs)
+    - Backend: Database migration, API schemas with validation (FDM/Resin/SLS, filament diameters, bed dimensions > 0)
+    - Frontend: Enhanced form with Hardware Details and Specifications sections
+    - Display: Printer type, make/model, bed size in list view
+    - Tests: 2 new model tests, 4 new API validation tests
+    - All 243 tests passing, 83% coverage
+    - Commit: 0dc80b8
+- Now: [→] Monitoring production system, ready for next enhancement
 - Next:
-  - Monitor production system for stability
+  - GitHub open issues: #5 (job details), #6 (dashboard layout bug), #7 (job details), #9 (printer maintenance)
   - Future enhancements (WebSocket real-time updates for frontend, Spoolman integration)
   - Consider writing tests for backfill functionality (currently manual testing only)
 
