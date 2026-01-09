@@ -116,6 +116,69 @@ class TestPrinterModel:
         assert "Repr Printer" in repr_str
         assert str(printer.id) in repr_str
 
+    def test_printer_hardware_details_fields(self, db_session):
+        """Printer can store hardware details (Issue #8)."""
+        from src.database.models import Printer
+
+        printer = Printer(
+            name="Hardware Printer",
+            moonraker_url="http://localhost:7125",
+            # Hardware details
+            printer_type="FDM",
+            make="Prusa",
+            model="MK4",
+            description="Office printer with enclosure",
+            # Specifications
+            filament_diameter=1.75,
+            nozzle_diameter=0.4,
+            bed_x=220.0,
+            bed_y=220.0,
+            bed_z=250.0,
+            has_heated_bed=True,
+            has_heated_chamber=False,
+            # Material tracking
+            loaded_materials=[{"type": "PLA", "color": "Black"}]
+        )
+        db_session.add(printer)
+        db_session.commit()
+
+        assert printer.printer_type == "FDM"
+        assert printer.make == "Prusa"
+        assert printer.model == "MK4"
+        assert printer.description == "Office printer with enclosure"
+        assert printer.filament_diameter == 1.75
+        assert printer.nozzle_diameter == 0.4
+        assert printer.bed_x == 220.0
+        assert printer.bed_y == 220.0
+        assert printer.bed_z == 250.0
+        assert printer.has_heated_bed is True
+        assert printer.has_heated_chamber is False
+        assert printer.loaded_materials == [{"type": "PLA", "color": "Black"}]
+
+    def test_printer_hardware_details_defaults(self, db_session):
+        """Printer hardware details have correct default values (Issue #8)."""
+        from src.database.models import Printer
+
+        printer = Printer(
+            name="Default Hardware Printer",
+            moonraker_url="http://localhost:7125"
+        )
+        db_session.add(printer)
+        db_session.commit()
+
+        assert printer.printer_type is None
+        assert printer.make is None
+        assert printer.model is None
+        assert printer.description is None
+        assert printer.filament_diameter == 1.75  # Default value
+        assert printer.nozzle_diameter is None
+        assert printer.bed_x is None
+        assert printer.bed_y is None
+        assert printer.bed_z is None
+        assert printer.has_heated_bed is False
+        assert printer.has_heated_chamber is False
+        assert printer.loaded_materials is None
+
 
 class TestPrintJobModel:
     """Tests for PrintJob model."""

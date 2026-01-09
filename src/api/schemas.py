@@ -3,9 +3,9 @@ Pydantic schemas for API request/response models.
 """
 
 from datetime import datetime
-from typing import Any, Dict, Generic, List, Optional, TypeVar
+from typing import Any, Dict, Generic, List, Literal, Optional, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # Generic type for paginated responses
 T = TypeVar("T")
@@ -80,6 +80,32 @@ class PrinterCreate(BaseModel):
         None, description="Moonraker API key if required"
     )
 
+    # Printer hardware details (Issue #8)
+    printer_type: Optional[Literal["FDM", "Resin", "SLS"]] = Field(
+        None, description="Type of 3D printer"
+    )
+    make: Optional[str] = Field(None, max_length=100, description="Manufacturer")
+    model: Optional[str] = Field(None, max_length=100, description="Model name")
+    description: Optional[str] = Field(None, max_length=500, description="Description")
+
+    # Printer specifications
+    filament_diameter: Optional[Literal[1.75, 2.85, 3.0]] = Field(
+        1.75, description="Filament diameter in mm"
+    )
+    nozzle_diameter: Optional[float] = Field(
+        None, gt=0, description="Nozzle diameter in mm"
+    )
+    bed_x: Optional[float] = Field(None, gt=0, description="Bed width in mm")
+    bed_y: Optional[float] = Field(None, gt=0, description="Bed depth in mm")
+    bed_z: Optional[float] = Field(None, gt=0, description="Bed height in mm")
+    has_heated_bed: bool = Field(False, description="Has heated bed")
+    has_heated_chamber: bool = Field(False, description="Has heated chamber")
+
+    # Material tracking (Spoolman integration future)
+    loaded_materials: Optional[List[Dict[str, Any]]] = Field(
+        None, description="Currently loaded materials"
+    )
+
 
 class PrinterUpdate(BaseModel):
     """Schema for updating a printer. All fields optional."""
@@ -89,6 +115,24 @@ class PrinterUpdate(BaseModel):
     location: Optional[str] = Field(None, max_length=200)
     moonraker_api_key: Optional[str] = None
     is_active: Optional[bool] = None
+
+    # Printer hardware details (Issue #8)
+    printer_type: Optional[Literal["FDM", "Resin", "SLS"]] = None
+    make: Optional[str] = Field(None, max_length=100)
+    model: Optional[str] = Field(None, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+
+    # Printer specifications
+    filament_diameter: Optional[Literal[1.75, 2.85, 3.0]] = None
+    nozzle_diameter: Optional[float] = Field(None, gt=0)
+    bed_x: Optional[float] = Field(None, gt=0)
+    bed_y: Optional[float] = Field(None, gt=0)
+    bed_z: Optional[float] = Field(None, gt=0)
+    has_heated_bed: Optional[bool] = None
+    has_heated_chamber: Optional[bool] = None
+
+    # Material tracking
+    loaded_materials: Optional[List[Dict[str, Any]]] = None
 
 
 class PrinterResponse(BaseSchema):
@@ -100,6 +144,25 @@ class PrinterResponse(BaseSchema):
     location: Optional[str] = None
     is_active: bool
     last_seen: Optional[datetime] = None
+
+    # Printer hardware details (Issue #8)
+    printer_type: Optional[str] = None
+    make: Optional[str] = None
+    model: Optional[str] = None
+    description: Optional[str] = None
+
+    # Printer specifications
+    filament_diameter: Optional[float] = None
+    nozzle_diameter: Optional[float] = None
+    bed_x: Optional[float] = None
+    bed_y: Optional[float] = None
+    bed_z: Optional[float] = None
+    has_heated_bed: bool = False
+    has_heated_chamber: bool = False
+
+    # Material tracking
+    loaded_materials: Optional[List[Dict[str, Any]]] = None
+
     created_at: datetime
     updated_at: datetime
 

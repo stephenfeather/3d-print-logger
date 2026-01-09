@@ -126,6 +126,84 @@ class TestCreatePrinter:
         )
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
+    def test_create_printer_with_hardware_details(self, client, auth_headers):
+        """Create printer with hardware details (Issue #8)."""
+        response = client.post(
+            "/api/printers",
+            headers=auth_headers,
+            json={
+                "name": "Hardware Printer",
+                "moonraker_url": "http://hardware:7125",
+                "location": "Workshop",
+                # Hardware details
+                "printer_type": "FDM",
+                "make": "Prusa",
+                "model": "MK4",
+                "description": "Office printer with enclosure",
+                # Specifications
+                "filament_diameter": 1.75,
+                "nozzle_diameter": 0.4,
+                "bed_x": 220.0,
+                "bed_y": 220.0,
+                "bed_z": 250.0,
+                "has_heated_bed": True,
+                "has_heated_chamber": False,
+            },
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        data = response.json()
+        assert data["name"] == "Hardware Printer"
+        assert data["printer_type"] == "FDM"
+        assert data["make"] == "Prusa"
+        assert data["model"] == "MK4"
+        assert data["description"] == "Office printer with enclosure"
+        assert data["filament_diameter"] == 1.75
+        assert data["nozzle_diameter"] == 0.4
+        assert data["bed_x"] == 220.0
+        assert data["bed_y"] == 220.0
+        assert data["bed_z"] == 250.0
+        assert data["has_heated_bed"] is True
+        assert data["has_heated_chamber"] is False
+
+    def test_create_printer_invalid_printer_type(self, client, auth_headers):
+        """Invalid printer_type should return 422 (Issue #8)."""
+        response = client.post(
+            "/api/printers",
+            headers=auth_headers,
+            json={
+                "name": "Invalid Type Printer",
+                "moonraker_url": "http://invalid:7125",
+                "printer_type": "InvalidType",  # Not in allowed values
+            },
+        )
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_create_printer_invalid_filament_diameter(self, client, auth_headers):
+        """Invalid filament_diameter should return 422 (Issue #8)."""
+        response = client.post(
+            "/api/printers",
+            headers=auth_headers,
+            json={
+                "name": "Invalid Filament Printer",
+                "moonraker_url": "http://invalid:7125",
+                "filament_diameter": 2.0,  # Not in allowed values
+            },
+        )
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_create_printer_negative_bed_dimensions(self, client, auth_headers):
+        """Negative bed dimensions should return 422 (Issue #8)."""
+        response = client.post(
+            "/api/printers",
+            headers=auth_headers,
+            json={
+                "name": "Negative Bed Printer",
+                "moonraker_url": "http://negative:7125",
+                "bed_x": -10,  # Invalid: must be > 0
+            },
+        )
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
 
 class TestGetPrinter:
     """Test GET /api/printers/{printer_id} endpoint."""

@@ -58,6 +58,24 @@ class Printer(Base, TimestampMixin):
     is_active = Column(Boolean, default=True, nullable=False, index=True)
     last_seen = Column(DateTime, nullable=True)
 
+    # Printer hardware details (Issue #8)
+    printer_type = Column(String(50), nullable=True)  # FDM, Resin, SLS
+    make = Column(String(100), nullable=True)
+    model = Column(String(100), nullable=True)
+    description = Column(String(500), nullable=True)
+
+    # Printer specifications
+    filament_diameter = Column(Float, nullable=True, default=1.75)  # 1.75, 2.85, 3.0
+    nozzle_diameter = Column(Float, nullable=True)
+    bed_x = Column(Float, nullable=True)  # mm
+    bed_y = Column(Float, nullable=True)  # mm
+    bed_z = Column(Float, nullable=True)  # mm
+    has_heated_bed = Column(Boolean, default=False, nullable=False)
+    has_heated_chamber = Column(Boolean, default=False, nullable=False)
+
+    # Material tracking (Spoolman integration future)
+    loaded_materials = Column(JSON, nullable=True)
+
     # Relationships
     print_jobs = relationship(
         "PrintJob",

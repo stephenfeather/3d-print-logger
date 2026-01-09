@@ -102,14 +102,31 @@ function handleSaved() {
           </div>
         </template>
       </Column>
+      <Column field="printer_type" header="Type" :sortable="true">
+        <template #body="{ data }">
+          <Tag v-if="data.printer_type" :value="data.printer_type" severity="secondary" />
+          <span v-else class="text-muted">-</span>
+        </template>
+      </Column>
+      <Column header="Make / Model" :sortable="false">
+        <template #body="{ data }">
+          <span v-if="data.make || data.model">
+            {{ [data.make, data.model].filter(Boolean).join(' ') }}
+          </span>
+          <span v-else class="text-muted">-</span>
+        </template>
+      </Column>
+      <Column header="Bed Size" :sortable="false">
+        <template #body="{ data }">
+          <span v-if="data.bed_x && data.bed_y && data.bed_z" class="bed-size">
+            {{ data.bed_x }} × {{ data.bed_y }} × {{ data.bed_z }} mm
+          </span>
+          <span v-else class="text-muted">-</span>
+        </template>
+      </Column>
       <Column field="location" header="Location" :sortable="true">
         <template #body="{ data }">
           {{ data.location || '-' }}
-        </template>
-      </Column>
-      <Column field="moonraker_url" header="Moonraker URL">
-        <template #body="{ data }">
-          <code class="url">{{ data.moonraker_url }}</code>
         </template>
       </Column>
       <Column field="last_seen" header="Last Seen" :sortable="true">
@@ -170,6 +187,11 @@ function handleSaved() {
 .text-muted {
   color: var(--p-text-muted-color);
   margin: 0;
+}
+
+.bed-size {
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
 }
 
 .loading-state {

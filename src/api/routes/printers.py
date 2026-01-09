@@ -94,6 +94,19 @@ async def create_printer(
         location=printer_data.location,
         moonraker_api_key=printer_data.moonraker_api_key,
         is_active=True,
+        # Hardware details (Issue #8)
+        printer_type=printer_data.printer_type,
+        make=printer_data.make,
+        model=printer_data.model,
+        description=printer_data.description,
+        filament_diameter=printer_data.filament_diameter,
+        nozzle_diameter=printer_data.nozzle_diameter,
+        bed_x=printer_data.bed_x,
+        bed_y=printer_data.bed_y,
+        bed_z=printer_data.bed_z,
+        has_heated_bed=printer_data.has_heated_bed,
+        has_heated_chamber=printer_data.has_heated_chamber,
+        loaded_materials=printer_data.loaded_materials,
     )
     db.add(printer)
     db.commit()
