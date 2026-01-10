@@ -1,5 +1,5 @@
 # Session: 3d-print-logger
-Updated: 2026-01-09T21:52:00.000Z
+Updated: 2026-01-10T02:45:00.000Z
 
 ## Goal
 Create a hosted application that logs 3D print jobs from Klipper with web-based analytics. Done when:
@@ -193,9 +193,24 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - Tests: 2 new model tests, 4 new API validation tests
     - All 243 tests passing, 83% coverage
     - Commit: 0dc80b8
+  - [x] Issue #10: Move Menu to Top Ribbon Navigation (COMPLETE)
+    - Replaced collapsible sidebar with horizontal navbar across top
+    - Menu items: Dashboard | Prints | Printers | Maintenance | Analytics | Settings
+    - Renamed Jobs page to Prints for consistency
+    - Created Maintenance placeholder page (future Issue #9)
+    - Mobile responsive with hamburger menu (≤900px)
+    - Tablet view shows icons only (901-1100px)
+    - Commit: c1c7e97
+  - [x] Issue #9: Minimal Printer Maintenance Details (COMPLETE)
+    - Database model: MaintenanceRecord with date, done, printer_id, category, description, cost, notes
+    - Backend: Full CRUD API at /api/maintenance with filtering by printer/status
+    - Frontend: MaintenanceList with DataTable, filters; MaintenanceFormDialog for create/edit
+    - Categories: cleaning, calibration, parts_replacement, repair, inspection, upgrade, other
+    - Tests: 43 new tests (20 database, 23 API) with 100% route coverage
+    - Commit: 07595a7
 - Now: [→] Monitoring production system, ready for next enhancement
 - Next:
-  - GitHub open issues: #5 (job details), #6 (dashboard layout bug), #7 (job details), #9 (printer maintenance)
+  - GitHub open issues: #5 (job details), #6 (dashboard layout bug), #7 (job details)
   - Future enhancements (WebSocket real-time updates for frontend, Spoolman integration)
   - Consider writing tests for backfill functionality (currently manual testing only)
 
@@ -253,10 +268,18 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - src/moonraker/manager.py (connection manager - 14 tests, 86% coverage)
     - src/moonraker/history.py (REST API history import - NEW)
     - tests/test_moonraker/ (48/50 passing, 96% success rate)
-  - Phase 3 - API Layer (COMPLETE - 58 tests):
+  - Phase 3 - API Layer (COMPLETE - 81 tests):
     - src/api/ directory (routes, auth)
-    - src/api/routes/ (endpoints for printers, jobs, analytics, admin)
-    - tests/test_api/ (58 tests, all passing)
+    - src/api/routes/ (endpoints for printers, jobs, analytics, admin, maintenance)
+    - tests/test_api/ (81 tests, all passing)
+  - Maintenance Feature (Issue #9):
+    - src/api/routes/maintenance.py (CRUD endpoints)
+    - frontend/src/types/maintenance.ts (TypeScript interfaces)
+    - frontend/src/api/maintenance.ts (API service)
+    - frontend/src/composables/useMaintenance.ts (TanStack Query hooks)
+    - frontend/src/components/maintenance/ (MaintenanceList, MaintenanceFormDialog)
+    - tests/test_database/test_maintenance.py (20 tests)
+    - tests/test_api/test_maintenance.py (23 tests)
   - Phase 4 - Gcode Parser (COMPLETE - 35 tests):
     - src/gcode/parser.py (GcodeParser + GcodeMetadata - 95% coverage)
     - tests/test_gcode/ (35 tests, all passing)
@@ -267,7 +290,7 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - frontend/src/router/index.ts (auth guard + protected routes)
     - frontend/src/api/client.ts (axios + 401 interceptor)
     - frontend/src/components/common/AppFooter.vue (version display)
-    - frontend/src/components/common/AppSidebar.vue (logout button)
+    - frontend/src/components/common/AppNavbar.vue (top ribbon navigation)
   - Production utilities:
     - generate_api_key.py (bootstrap API key generator)
     - docker/ (Docker deployment configuration)
@@ -355,9 +378,10 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
 **Backend test coverage**:
   - Phase 1: 70 tests passing
   - Phase 2: 48/50 tests passing
-  - Phase 3: 58 tests passing
+  - Phase 3: 58 tests passing (+ 23 maintenance)
   - Phase 4: 35 tests passing
-  - Combined: 211/213 tests passing (99.1%), 89% code coverage
+  - Maintenance: 43 tests passing (20 database, 23 API)
+  - Combined: 286 tests passing (3 pre-existing failures), 85% code coverage
 **Current State**:
   - Production deployed and operational at http://localhost:8000
   - Real-time WebSocket tracking: ✅ Active and verified
