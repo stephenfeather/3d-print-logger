@@ -1,5 +1,5 @@
 # Session: 3d-print-logger
-Updated: 2026-01-10T02:45:00.000Z
+Updated: 2026-01-10T11:10:00.000Z
 
 ## Goal
 Create a hosted application that logs 3D print jobs from Klipper with web-based analytics. Done when:
@@ -208,6 +208,21 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - Categories: cleaning, calibration, parts_replacement, repair, inspection, upgrade, other
     - Tests: 43 new tests (20 database, 23 API) with 100% route coverage
     - Commit: 07595a7
+  - [x] Issue #11: Analytics timeline period tabs not reactive (COMPLETE)
+    - Bug: Daily/Weekly/Monthly tabs didn't update chart data
+    - Root cause: useTimeline(timelinePeriod.value) passed static value, not reactive ref
+    - Fix: useTimeline now accepts MaybeRef<TimelinePeriod> with computed queryKey
+    - TanStack Query auto-refetches when queryKey changes
+    - Commit: 6184537
+  - [x] Issue #12: Printer status shows stale data (COMPLETE)
+    - Bug: Printer showed "printing" when idle, displayed old print instead of latest
+    - Root cause: Job ID mismatch between status updates (synthetic IDs) and history events (real Moonraker UUIDs)
+    - Fix: Three-pronged cleanup strategy in handlers.py:
+      1. Completion handler cleans up ALL other "printing" jobs (printer can only do one at a time)
+      2. Standby handler cleans up any stale "printing/paused" jobs
+      3. History "finished" handler cleans up synthetic jobs with matching filename
+    - Tests: 3 new handler tests (21 total, 20 passing, 1 pre-existing)
+    - Verified: Stale job #260 cleaned up, printer status now accurate
 - Now: [→] Monitoring production system, ready for next enhancement
 - Next:
   - GitHub open issues: #5 (job details), #6 (dashboard layout bug), #7 (job details)
@@ -388,7 +403,7 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
   - Printer connection: ✅ Connected to Qidi Q1 Pro at http://10.1.1.211:7125/
   - Active print tracking: ✅ Job #260 updating in real-time (duration, filament usage)
   - Dashboard status: ✅ Displaying "Printing" with current file
-  - Last commits: bc5b9a4 (WebSocket fixes), d9c3bbc (status endpoint), 006c1a6 (capitalization)
+  - Last commits: 6184537 (issue #11 analytics fix), 1bf74c9 (ledger update), 07595a7 (issue #9 maintenance)
 **Implementation artifacts**:
   - src/database/ - Complete database layer
   - src/moonraker/ - Complete WebSocket integration layer

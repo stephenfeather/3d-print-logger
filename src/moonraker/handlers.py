@@ -121,7 +121,8 @@ async def handle_status_update(
             )
 
         elif state == "standby":
-            # Idle state - no action needed
+            # Idle state - clean up any stale printing jobs
+            await _handle_standby_state(printer_id, db)
             logger.debug(f"Printer {printer_id} is on standby")
 
         else:
@@ -306,12 +307,74 @@ async def _handle_completion_state(
         f"for printer {printer_id}"
     )
 
+    # Clean up any other stale "printing" jobs for this printer
+    # A printer can only print one thing at a time, so any other
+    # "printing" jobs must be orphaned/stale
+    stale_jobs = (
+        db.query(PrintJob)
+        .filter(
+            PrintJob.printer_id == printer_id,
+            PrintJob.status.in_(["printing", "paused"]),
+            PrintJob.id != job.id  # Don't mark the just-completed job
+        )
+        .all()
+    )
+
+    if stale_jobs:
+        now = datetime.utcnow()
+        for stale_job in stale_jobs:
+            stale_job.status = "cancelled"
+            stale_job.end_time = now
+            logger.info(
+                f"Cleaned up stale job {stale_job.id} ({stale_job.filename}) "
+                f"while completing job {job.id}"
+            )
+        db.commit()
+
     # Update job totals for printer
     totals = update_job_totals(db, printer_id)
     logger.debug(
         f"Updated totals for printer {printer_id}: "
         f"{totals.total_jobs} jobs"
     )
+
+
+async def _handle_standby_state(
+    printer_id: int,
+    db: Session,
+) -> None:
+    """
+    Handle standby state - clean up any stale printing/paused jobs.
+
+    When a printer enters standby, it means no print is active.
+    Any jobs still marked as "printing" or "paused" are stale and
+    should be marked as cancelled.
+
+    Args:
+        printer_id: Printer ID
+        db: Database session
+    """
+    # Find any stale "printing" or "paused" jobs for this printer
+    stale_jobs = (
+        db.query(PrintJob)
+        .filter(
+            PrintJob.printer_id == printer_id,
+            PrintJob.status.in_(["printing", "paused"])
+        )
+        .all()
+    )
+
+    if stale_jobs:
+        now = datetime.utcnow()
+        for job in stale_jobs:
+            job.status = "cancelled"
+            job.end_time = now
+            logger.info(
+                f"Cleaned up stale job {job.id} ({job.filename}) "
+                f"for printer {printer_id} - marked as cancelled"
+            )
+        db.commit()
+        logger.info(f"Cleaned up {len(stale_jobs)} stale jobs for printer {printer_id}")
 
 
 async def _sync_finished_job(
@@ -365,6 +428,32 @@ async def _sync_finished_job(
         f"Synced finished job {job.id} from history "
         f"for printer {printer_id}"
     )
+
+    # Clean up any synthetic "printing" jobs with matching filename
+    # This handles the case where status_update creates a synthetic job
+    # and history_changed creates a real job with a different ID
+    stale_jobs = (
+        db.query(PrintJob)
+        .filter(
+            PrintJob.printer_id == printer_id,
+            PrintJob.filename == filename,
+            PrintJob.status.in_(["printing", "paused"]),
+            PrintJob.job_id != job_id  # Don't mark the just-synced job
+        )
+        .all()
+    )
+
+    if stale_jobs:
+        for stale_job in stale_jobs:
+            stale_job.status = status  # Use same status as the real job
+            stale_job.end_time = end_time
+            stale_job.print_duration = print_duration
+            stale_job.filament_used = filament_used
+            logger.info(
+                f"Cleaned up synthetic job {stale_job.id} ({stale_job.job_id}) "
+                f"matching finished job {job_id}"
+            )
+        db.commit()
 
 
 async def _sync_added_job(

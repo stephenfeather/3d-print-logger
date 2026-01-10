@@ -141,8 +141,40 @@ class TestStatusUpdateHandler:
         assert jobs[0].status == "error"
 
     @pytest.mark.asyncio
-    async def test_handle_status_ignores_standby_state(self, db_session, sample_printer):
-        """Test handle_status_update ignores standby state."""
+    async def test_handle_standby_cleans_up_stale_printing_jobs(self, db_session, sample_printer):
+        """Test handle_status_update cleans up stale printing jobs when state is standby."""
+        # Create a "stuck" printing job (simulating the bug scenario)
+        stale_job = upsert_print_job(
+            db_session,
+            printer_id=sample_printer.id,
+            job_id="active-old_print.gcode-" + str(sample_printer.id),
+            filename="old_print.gcode",
+            status="printing",
+            start_time=datetime.utcnow() - timedelta(hours=2),
+            print_duration=1000.0,
+            filament_used=500.0
+        )
+
+        params = {
+            "print_stats": {
+                "state": "standby",
+                "filename": "",
+                "print_duration": 0.0,
+                "filament_used": 0.0,
+                "message": ""
+            }
+        }
+
+        await handle_status_update(sample_printer.id, params, db_session)
+
+        # Verify the stale printing job was marked as cancelled
+        db_session.refresh(stale_job)
+        assert stale_job.status == "cancelled"
+        assert stale_job.end_time is not None
+
+    @pytest.mark.asyncio
+    async def test_handle_standby_does_not_create_new_job(self, db_session, sample_printer):
+        """Test handle_status_update does not create new job when state is standby."""
         params = {
             "print_stats": {
                 "state": "standby",
@@ -158,6 +190,39 @@ class TestStatusUpdateHandler:
         # Verify no job was created
         jobs = get_jobs_by_printer(db_session, sample_printer.id)
         assert len(jobs) == 0
+
+    @pytest.mark.asyncio
+    async def test_handle_completion_cleans_up_other_stale_jobs(self, db_session, sample_printer):
+        """Test handle_status_update cleans up other stale printing jobs when a job completes."""
+        # Create a stale "printing" job for a DIFFERENT file
+        stale_job = upsert_print_job(
+            db_session,
+            printer_id=sample_printer.id,
+            job_id=f"active-old_file.gcode-{sample_printer.id}",
+            filename="old_file.gcode",
+            status="printing",
+            start_time=datetime.utcnow() - timedelta(hours=2),
+            print_duration=1000.0,
+            filament_used=500.0
+        )
+
+        # Now complete a different print
+        params = {
+            "print_stats": {
+                "state": "complete",
+                "filename": "new_file.gcode",  # Different filename!
+                "print_duration": 2000.0,
+                "filament_used": 1000.0,
+                "message": ""
+            }
+        }
+
+        await handle_status_update(sample_printer.id, params, db_session)
+
+        # Verify the stale job was marked as cancelled
+        db_session.refresh(stale_job)
+        assert stale_job.status == "cancelled"
+        assert stale_job.end_time is not None
 
     @pytest.mark.asyncio
     async def test_handle_completion_updates_job_totals(self, db_session, sample_printer):
@@ -374,6 +439,44 @@ class TestHistoryChangedHandler:
         db_session.refresh(printer)
         assert printer.last_seen is not None
         assert (datetime.utcnow() - printer.last_seen).total_seconds() < 5
+
+    @pytest.mark.asyncio
+    async def test_handle_history_finished_cleans_up_synthetic_jobs(self, db_session, sample_printer):
+        """Test handle_history_changed cleans up synthetic job when real job finishes."""
+        # Create a synthetic "printing" job (what status_update creates)
+        synthetic_job = upsert_print_job(
+            db_session,
+            printer_id=sample_printer.id,
+            job_id=f"active-test_print.gcode-{sample_printer.id}",
+            filename="test_print.gcode",
+            status="printing",
+            start_time=datetime.utcnow() - timedelta(hours=1),
+            print_duration=500.0,
+            filament_used=250.0
+        )
+
+        # Now receive the history "finished" event with the real Moonraker job ID
+        job_data = {
+            "job_id": "000001234-abcd-efgh",  # Real Moonraker UUID
+            "filename": "test_print.gcode",  # Same filename
+            "start_time": (datetime.utcnow() - timedelta(hours=1)).timestamp(),
+            "end_time": datetime.utcnow().timestamp(),
+            "print_duration": 3600,
+            "filament_used": 500.0,
+            "status": "completed"
+        }
+
+        params = {
+            "action": "finished",
+            "job": job_data
+        }
+
+        await handle_history_changed(sample_printer.id, params, db_session)
+
+        # Verify the synthetic printing job was marked as completed
+        db_session.refresh(synthetic_job)
+        assert synthetic_job.status == "completed"
+        assert synthetic_job.end_time is not None
 
 
 class TestHandlerEdgeCases:
