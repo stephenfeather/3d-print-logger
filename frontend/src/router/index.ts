@@ -22,14 +22,19 @@ const router = createRouter({
           component: () => import('@/pages/DashboardPage.vue'),
         },
         {
+          path: 'prints',
+          name: 'prints',
+          component: () => import('@/pages/PrintsPage.vue'),
+        },
+        {
           path: 'printers',
           name: 'printers',
           component: () => import('@/pages/PrintersPage.vue'),
         },
         {
-          path: 'jobs',
-          name: 'jobs',
-          component: () => import('@/pages/JobsPage.vue'),
+          path: 'maintenance',
+          name: 'maintenance',
+          component: () => import('@/pages/MaintenancePage.vue'),
         },
         {
           path: 'analytics',

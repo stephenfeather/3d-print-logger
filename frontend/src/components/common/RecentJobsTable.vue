@@ -23,7 +23,7 @@ function getStatusLabel(status: string): string {
   <div class="recent-jobs-card">
     <div class="card-header">
       <h3>Recent Print Jobs</h3>
-      <router-link to="/jobs" class="view-all-link">View all</router-link>
+      <router-link to="/prints" class="view-all-link">View all</router-link>
     </div>
 
     <div v-if="isLoading" class="loading-state">

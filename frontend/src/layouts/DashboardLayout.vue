@@ -1,18 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import AppSidebar from '@/components/common/AppSidebar.vue'
+import AppNavbar from '@/components/common/AppNavbar.vue'
 import AppFooter from '@/components/common/AppFooter.vue'
-
-const sidebarCollapsed = ref(false)
-
-function toggleSidebar() {
-  sidebarCollapsed.value = !sidebarCollapsed.value
-}
 </script>
 
 <template>
-  <div class="dashboard-layout" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
-    <AppSidebar :collapsed="sidebarCollapsed" @toggle="toggleSidebar" />
+  <div class="dashboard-layout">
+    <AppNavbar />
     <main class="main-content">
       <div class="content-wrapper">
         <router-view />
@@ -25,31 +18,29 @@ function toggleSidebar() {
 <style scoped>
 .dashboard-layout {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background-color: var(--p-surface-ground);
 }
 
 .main-content {
   flex: 1;
-  margin-left: 250px;
-  transition: margin-left 0.3s ease;
+  margin-top: 60px;
   display: flex;
   flex-direction: column;
-}
-
-.sidebar-collapsed .main-content {
-  margin-left: 60px;
 }
 
 .content-wrapper {
   flex: 1;
   padding: 1.5rem;
   max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .main-content {
-    margin-left: 60px;
+    margin-top: 60px;
   }
 }
 </style>

@@ -3,9 +3,9 @@ import JobsTable from '@/components/jobs/JobsTable.vue'
 </script>
 
 <template>
-  <div class="jobs-page">
+  <div class="prints-page">
     <div class="page-header">
-      <h1>Print Jobs</h1>
+      <h1>Prints</h1>
       <p class="text-muted">View and manage your print history</p>
     </div>
 
@@ -14,7 +14,7 @@ import JobsTable from '@/components/jobs/JobsTable.vue'
 </template>
 
 <style scoped>
-.jobs-page {
+.prints-page {
   max-width: 1400px;
 }
 
