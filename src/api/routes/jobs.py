@@ -5,6 +5,7 @@ Provides REST API endpoints for querying print jobs,
 including filtering by printer, status, and date range.
 """
 
+import re
 from datetime import datetime
 from typing import Optional
 
@@ -15,12 +16,23 @@ from src.api.auth import get_api_key
 from src.api.schemas import (
     JobDetailsResponse,
     JobResponse,
+    JobUpdate,
     PaginatedResponse,
 )
 from src.database.engine import get_db
 from src.database.models import ApiKey, JobDetails, Printer, PrintJob
 
 router = APIRouter()
+
+
+def normalize_title(filename: str) -> str:
+    """Normalize filename to human-readable title.
+
+    Example: 'benchy_v2_final.gcode' -> 'Benchy V2 Final'
+    """
+    name = filename.rsplit('.', 1)[0] if '.' in filename else filename
+    name = re.sub(r'[_-]+', ' ', name)
+    return name.title()
 
 
 def _job_to_response(job: PrintJob) -> JobResponse:
@@ -35,6 +47,8 @@ def _job_to_response(job: PrintJob) -> JobResponse:
         job_id=job.job_id,
         user=job.user,
         filename=job.filename,
+        title=job.title,
+        url=job.url,
         status=job.status,
         start_time=job.start_time,
         end_time=job.end_time,
@@ -132,3 +146,32 @@ async def delete_job(
 
     db.delete(job)
     db.commit()
+
+
+@router.patch("/{job_id}", response_model=JobResponse)
+async def update_job(
+    job_id: int,
+    job_update: JobUpdate,
+    db: Session = Depends(get_db),
+    _api_key: ApiKey = Depends(get_api_key),
+) -> JobResponse:
+    """Update a print job's editable fields (title, url)."""
+    job = (
+        db.query(PrintJob)
+        .options(joinedload(PrintJob.job_details))
+        .filter(PrintJob.id == job_id)
+        .first()
+    )
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job with id {job_id} not found",
+        )
+
+    update_data = job_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(job, field, value)
+
+    db.commit()
+    db.refresh(job)
+    return _job_to_response(job)

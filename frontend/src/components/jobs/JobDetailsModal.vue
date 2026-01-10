@@ -1,11 +1,16 @@
 <script setup lang="ts">
+import { ref, computed, watch } from 'vue'
 import { formatDuration, formatDateTime, formatTemp, formatFilament } from '@/utils/formatters'
 import { JOB_STATUS_COLORS, JOB_STATUS_LABELS } from '@/utils/constants'
+import { useUpdateJob } from '@/composables/useJobs'
 import type { PrintJob, JobStatus } from '@/types/job'
 import Dialog from 'primevue/dialog'
 import Tag from 'primevue/tag'
+import InputText from 'primevue/inputtext'
+import Button from 'primevue/button'
+import { useToast } from 'primevue/usetoast'
 
-defineProps<{
+const props = defineProps<{
   visible: boolean
   job: PrintJob | null
 }>()
@@ -13,6 +18,42 @@ defineProps<{
 const emit = defineEmits<{
   'update:visible': [value: boolean]
 }>()
+
+const toast = useToast()
+const updateMutation = useUpdateJob()
+
+const isEditing = ref(false)
+const editTitle = ref('')
+const editUrl = ref('')
+
+watch(
+  () => props.job,
+  (newJob) => {
+    if (newJob) {
+      editTitle.value = newJob.title || normalizeTitle(newJob.filename)
+      editUrl.value = newJob.url || ''
+    }
+    isEditing.value = false
+  },
+  { immediate: true }
+)
+
+function normalizeTitle(filename: string): string {
+  const name = filename.includes('.') ? filename.split('.').slice(0, -1).join('.') : filename
+  return name.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+const displayTitle = computed(() => {
+  if (!props.job) return ''
+  return props.job.title || normalizeTitle(props.job.filename)
+})
+
+const estimatedCompletion = computed(() => {
+  if (!props.job?.start_time || !props.job?.details?.estimated_time) return null
+  const startTime = new Date(props.job.start_time)
+  const completionTime = new Date(startTime.getTime() + props.job.details.estimated_time * 1000)
+  return completionTime.toISOString()
+})
 
 function getStatusColor(status: string): string {
   return JOB_STATUS_COLORS[status as JobStatus] || 'secondary'
@@ -23,7 +64,52 @@ function getStatusLabel(status: string): string {
 }
 
 function handleClose() {
+  isEditing.value = false
   emit('update:visible', false)
+}
+
+function startEditing() {
+  if (props.job) {
+    editTitle.value = props.job.title || normalizeTitle(props.job.filename)
+    editUrl.value = props.job.url || ''
+  }
+  isEditing.value = true
+}
+
+function cancelEditing() {
+  if (props.job) {
+    editTitle.value = props.job.title || normalizeTitle(props.job.filename)
+    editUrl.value = props.job.url || ''
+  }
+  isEditing.value = false
+}
+
+async function saveChanges() {
+  if (!props.job) return
+
+  try {
+    await updateMutation.mutateAsync({
+      id: props.job.id,
+      data: {
+        title: editTitle.value || null,
+        url: editUrl.value || null,
+      },
+    })
+    isEditing.value = false
+    toast.add({
+      severity: 'success',
+      summary: 'Job Updated',
+      detail: 'Job details have been saved',
+      life: 3000,
+    })
+  } catch {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Failed to update job',
+      life: 5000,
+    })
+  }
 }
 </script>
 
@@ -46,10 +132,68 @@ function handleClose() {
             />
           </div>
           <div class="header-text">
-            <h3 class="filename">{{ job.filename }}</h3>
+            <div v-if="isEditing" class="edit-title-section">
+              <InputText
+                v-model="editTitle"
+                placeholder="Job title"
+                class="title-input"
+              />
+            </div>
+            <h3 v-else class="filename">{{ displayTitle }}</h3>
+            <p v-if="job.title && job.filename !== displayTitle" class="original-filename">
+              {{ job.filename }}
+            </p>
             <Tag :severity="getStatusColor(job.status)">{{ getStatusLabel(job.status) }}</Tag>
           </div>
         </div>
+        <div class="header-actions">
+          <template v-if="isEditing">
+            <Button
+              icon="pi pi-check"
+              severity="success"
+              text
+              rounded
+              :loading="updateMutation.isPending.value"
+              @click="saveChanges"
+              v-tooltip.top="'Save'"
+            />
+            <Button
+              icon="pi pi-times"
+              severity="secondary"
+              text
+              rounded
+              @click="cancelEditing"
+              v-tooltip.top="'Cancel'"
+            />
+          </template>
+          <Button
+            v-else
+            icon="pi pi-pencil"
+            severity="secondary"
+            text
+            rounded
+            @click="startEditing"
+            v-tooltip.top="'Edit'"
+          />
+        </div>
+      </div>
+
+      <div v-if="isEditing" class="edit-url-section">
+        <label for="edit-url" class="edit-label">Model URL</label>
+        <InputText
+          id="edit-url"
+          v-model="editUrl"
+          placeholder="https://www.thingiverse.com/thing:..."
+          class="url-input"
+        />
+      </div>
+
+      <div v-else-if="job.url" class="url-display">
+        <span class="url-label">Model:</span>
+        <a :href="job.url" target="_blank" rel="noopener noreferrer" class="url-link">
+          {{ job.url }}
+          <i class="pi pi-external-link"></i>
+        </a>
       </div>
 
       <div class="details-grid">
@@ -67,6 +211,10 @@ function handleClose() {
             <div class="detail-item">
               <dt>Start Time</dt>
               <dd>{{ formatDateTime(job.start_time) }}</dd>
+            </div>
+            <div v-if="job.status === 'printing' && estimatedCompletion" class="detail-item">
+              <dt>Est. Completion</dt>
+              <dd>{{ formatDateTime(estimatedCompletion) }}</dd>
             </div>
             <div class="detail-item">
               <dt>End Time</dt>
@@ -205,6 +353,9 @@ function handleClose() {
 }
 
 .detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--p-surface-border);
 }
@@ -213,6 +364,12 @@ function handleClose() {
   display: flex;
   align-items: flex-start;
   gap: 1rem;
+  flex: 1;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.25rem;
 }
 
 .detail-thumbnail {
@@ -232,12 +389,74 @@ function handleClose() {
   flex-direction: column;
   gap: 0.5rem;
   min-width: 0;
+  flex: 1;
 }
 
 .filename {
   margin: 0;
   font-size: 1.1rem;
   word-break: break-all;
+}
+
+.original-filename {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+}
+
+.edit-title-section {
+  width: 100%;
+}
+
+.title-input {
+  width: 100%;
+}
+
+.edit-url-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.edit-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--p-text-muted-color);
+}
+
+.url-input {
+  width: 100%;
+}
+
+.url-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background-color: var(--p-surface-ground);
+  border-radius: 8px;
+}
+
+.url-label {
+  font-size: 0.875rem;
+  color: var(--p-text-muted-color);
+}
+
+.url-link {
+  color: var(--p-primary-color);
+  text-decoration: none;
+  word-break: break-all;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.url-link:hover {
+  text-decoration: underline;
+}
+
+.url-link i {
+  font-size: 0.75rem;
 }
 
 .details-grid {

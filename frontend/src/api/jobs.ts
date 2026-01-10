@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { PrintJob, JobFilters } from '@/types/job'
+import type { PrintJob, JobFilters, JobUpdatePayload } from '@/types/job'
 import type { PaginatedResponse } from '@/types/api'
 
 export const jobsApi = {
@@ -35,5 +35,10 @@ export const jobsApi = {
 
   delete: async (id: number): Promise<void> => {
     await apiClient.delete(`/jobs/${id}`)
+  },
+
+  update: async (id: number, data: JobUpdatePayload): Promise<PrintJob> => {
+    const response = await apiClient.patch<PrintJob>(`/jobs/${id}`, data)
+    return response.data
   },
 }

@@ -229,6 +229,8 @@ class JobResponse(BaseSchema):
     job_id: str
     user: Optional[str] = None
     filename: str
+    title: Optional[str] = None
+    url: Optional[str] = None
     status: str
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
@@ -250,6 +252,13 @@ class JobListFilter(BaseModel):
     start_before: Optional[datetime] = None
     limit: int = Field(default=20, ge=1, le=100)
     offset: int = Field(default=0, ge=0)
+
+
+class JobUpdate(BaseModel):
+    """Schema for updating a job."""
+
+    title: Optional[str] = Field(None, max_length=500, description="User-editable job title")
+    url: Optional[str] = Field(None, max_length=1000, description="External model URL")
 
 
 # ========== Analytics Schemas ==========

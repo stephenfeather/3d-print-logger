@@ -119,6 +119,8 @@ class PrintJob(Base, TimestampMixin):
     job_id = Column(String(100), nullable=False)  # Moonraker's UUID
     user = Column(String(100), nullable=True)
     filename = Column(String(500), nullable=False)
+    title = Column(String(500), nullable=True)
+    url = Column(String(1000), nullable=True)
     status = Column(String(50), nullable=False, index=True)  # completed, error, cancelled, printing, paused
 
     start_time = Column(DateTime, nullable=False, index=True)

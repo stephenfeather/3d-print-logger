@@ -48,6 +48,8 @@ export interface PrintJob {
   job_id: string
   user: string | null
   filename: string
+  title: string | null
+  url: string | null
   status: JobStatus
   start_time: string | null
   end_time: string | null
@@ -67,4 +69,9 @@ export interface JobFilters {
   start_before?: string
   limit: number
   offset: number
+}
+
+export interface JobUpdatePayload {
+  title?: string | null
+  url?: string | null
 }

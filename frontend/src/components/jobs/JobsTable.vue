@@ -45,6 +45,15 @@ function getStatusLabel(status: string): string {
   return JOB_STATUS_LABELS[status as JobStatus] || status
 }
 
+function normalizeTitle(filename: string): string {
+  const name = filename.includes('.') ? filename.split('.').slice(0, -1).join('.') : filename
+  return name.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function getDisplayTitle(job: PrintJob): string {
+  return job.title || normalizeTitle(job.filename)
+}
+
 function openDetails(job: PrintJob) {
   selectedJob.value = job
   showDetailsModal.value = true
@@ -149,9 +158,12 @@ const first = computed(() => filters.value.offset)
             </div>
           </template>
         </Column>
-        <Column field="filename" header="File" :sortable="true">
+        <Column field="filename" header="Job" :sortable="true">
           <template #body="{ data }">
-            <span class="filename" :title="data.filename">{{ data.filename }}</span>
+            <div class="job-name-cell">
+              <span class="job-title" :title="getDisplayTitle(data)">{{ getDisplayTitle(data) }}</span>
+              <span v-if="data.title" class="job-filename" :title="data.filename">{{ data.filename }}</span>
+            </div>
           </template>
         </Column>
         <Column field="status" header="Status" style="width: 120px">
@@ -257,8 +269,23 @@ const first = computed(() => filters.value.offset)
   overflow: hidden;
 }
 
-.filename {
+.job-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
   max-width: 300px;
+}
+
+.job-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+.job-filename {
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

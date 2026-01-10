@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { jobsApi } from '@/api/jobs'
-import type { JobFilters, JobStatus } from '@/types/job'
+import type { JobFilters, JobStatus, JobUpdatePayload } from '@/types/job'
 
 export function useJobs(initialFilters?: Partial<JobFilters>) {
   const filters = ref<JobFilters>({
@@ -84,6 +84,18 @@ export function useDeleteJob() {
 
   return useMutation({
     mutationFn: (id: number) => jobsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] })
+    },
+  })
+}
+
+export function useUpdateJob() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: JobUpdatePayload }) =>
+      jobsApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['jobs'] })
     },
