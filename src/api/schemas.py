@@ -5,10 +5,23 @@ Pydantic schemas for API request/response models.
 from datetime import datetime
 from typing import Any, Dict, Generic, List, Literal, Optional, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
 # Generic type for paginated responses
 T = TypeVar("T")
+
+
+def serialize_datetime_utc(dt: datetime | None) -> str | None:
+    """Serialize datetime to ISO format with Z suffix for UTC.
+
+    JavaScript's Date() constructor interprets ISO strings without timezone
+    as local time. Adding 'Z' suffix ensures correct UTC interpretation.
+    This fixes Issue #13: incorrect relative time display.
+    """
+    if dt is None:
+        return None
+    # Format as ISO with Z suffix (UTC indicator)
+    return dt.isoformat() + "Z"
 
 
 class BaseSchema(BaseModel):
@@ -166,6 +179,11 @@ class PrinterResponse(BaseSchema):
     created_at: datetime
     updated_at: datetime
 
+    # Serialize all datetime fields with UTC Z suffix (Issue #13)
+    _serialize_datetimes = field_serializer(
+        "last_seen", "created_at", "updated_at", mode="plain"
+    )(serialize_datetime_utc)
+
 
 class PrinterStatusResponse(BaseModel):
     """Schema for printer status response."""
@@ -242,6 +260,11 @@ class JobResponse(BaseSchema):
     updated_at: datetime
     details: Optional[JobDetailsResponse] = None
 
+    # Serialize all datetime fields with UTC Z suffix (Issue #13)
+    _serialize_datetimes = field_serializer(
+        "start_time", "end_time", "created_at", "updated_at", mode="plain"
+    )(serialize_datetime_utc)
+
 
 class JobListFilter(BaseModel):
     """Query parameters for filtering jobs."""
@@ -287,6 +310,11 @@ class PrinterStats(BaseModel):
     failed_jobs: int = 0
     last_job_at: Optional[datetime] = None
 
+    # Serialize datetime with UTC Z suffix (Issue #13)
+    _serialize_datetimes = field_serializer("last_job_at", mode="plain")(
+        serialize_datetime_utc
+    )
+
 
 class FilamentUsage(BaseModel):
     """Filament usage by type."""
@@ -326,6 +354,11 @@ class ApiKeyResponse(BaseModel):
     expires_at: Optional[datetime] = None
     last_used: Optional[datetime] = None
     created_at: datetime
+
+    # Serialize all datetime fields with UTC Z suffix (Issue #13)
+    _serialize_datetimes = field_serializer(
+        "expires_at", "last_used", "created_at", mode="plain"
+    )(serialize_datetime_utc)
 
 
 class ApiKeyCreated(ApiKeyResponse):
@@ -387,3 +420,8 @@ class MaintenanceResponse(BaseSchema):
     notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+
+    # Serialize all datetime fields with UTC Z suffix (Issue #13)
+    _serialize_datetimes = field_serializer(
+        "date", "created_at", "updated_at", mode="plain"
+    )(serialize_datetime_utc)

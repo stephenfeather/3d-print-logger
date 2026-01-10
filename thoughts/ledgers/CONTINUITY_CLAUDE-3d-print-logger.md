@@ -1,5 +1,5 @@
 # Session: 3d-print-logger
-Updated: 2026-01-10T11:10:00.000Z
+Updated: 2026-01-10T13:20:37.025Z
 
 ## Goal
 Create a hosted application that logs 3D print jobs from Klipper with web-based analytics. Done when:
@@ -223,9 +223,27 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
       3. History "finished" handler cleans up synthetic jobs with matching filename
     - Tests: 3 new handler tests (21 total, 20 passing, 1 pre-existing)
     - Verified: Stale job #260 cleaned up, printer status now accurate
+  - [x] Issue #7: Minimal Details for Jobs (COMPLETE)
+    - Database: Added title (editable) and url columns to PrintJob model
+    - Migration: 229a36116fce_add_job_title_and_url.py
+    - Backend: PATCH /api/jobs/{id} endpoint, JobUpdate schema, normalize_title() utility
+    - Frontend types: Added title, url, JobUpdatePayload to job.ts
+    - JobDetailsModal: Editable title/url fields, estimated completion time display
+    - JobsTable: Shows humanized title (e.g., benchy_v2.gcode → Benchy V2)
+    - GitHub comment added explaining status values match Moonraker
+    - Commit: 19640d7
+  - [x] Issue #13: Dashboard recent prints shows wrong start time (COMPLETE)
+    - Bug: "Just now" displayed for prints completed 9 hours ago
+    - Root cause: API timestamps serialized without UTC "Z" suffix
+    - JavaScript's `new Date()` interprets timezone-naive ISO strings as local time
+    - If local timezone behind UTC, timestamp appears in future, making diffMins < 1 → "Just now"
+    - Fix: Added serialize_datetime_utc() function with Z suffix in src/api/schemas.py
+    - Applied to all response schemas: PrinterResponse, JobResponse, PrinterStats, ApiKeyResponse, MaintenanceResponse
+    - Tests: 2 new tests (TestTimestampSerialization) verifying Z suffix in API responses
+    - Verified: API now returns "2026-01-10T12:00:00.000000Z" format
 - Now: [→] Monitoring production system, ready for next enhancement
 - Next:
-  - GitHub open issues: #5 (job details), #6 (dashboard layout bug), #7 (job details)
+  - GitHub open issues: #5 (job details), #6 (dashboard layout bug)
   - Future enhancements (WebSocket real-time updates for frontend, Spoolman integration)
   - Consider writing tests for backfill functionality (currently manual testing only)
 
@@ -403,7 +421,7 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
   - Printer connection: ✅ Connected to Qidi Q1 Pro at http://10.1.1.211:7125/
   - Active print tracking: ✅ Job #260 updating in real-time (duration, filament usage)
   - Dashboard status: ✅ Displaying "Printing" with current file
-  - Last commits: 6184537 (issue #11 analytics fix), 1bf74c9 (ledger update), 07595a7 (issue #9 maintenance)
+  - Last commits: 19640d7 (issue #7 job title/url), 0ce7b1e (issue #12 stale jobs fix), 6184537 (issue #11 analytics fix)
 **Implementation artifacts**:
   - src/database/ - Complete database layer
   - src/moonraker/ - Complete WebSocket integration layer

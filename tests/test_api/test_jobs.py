@@ -254,3 +254,61 @@ class TestJobsByPrinter:
         """Jobs for non-existent printer should return 404."""
         response = client.get("/api/printers/99999/jobs", headers=auth_headers)
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+class TestTimestampSerialization:
+    """Test that timestamps are serialized correctly for JavaScript parsing (Issue #13)."""
+
+    def test_job_timestamps_include_utc_suffix(
+        self, client, auth_headers, db_session, sample_printer
+    ):
+        """Timestamps must include Z suffix so JavaScript parses them as UTC.
+
+        Bug: Without Z suffix, JavaScript's new Date() interprets timestamps as local time,
+        causing incorrect relative time display (e.g., "Just now" for 9-hour-old prints).
+        """
+        from src.database.models import PrintJob
+
+        # Create a job with known UTC timestamp
+        job = PrintJob(
+            printer_id=sample_printer.id,
+            job_id="timestamp_test",
+            filename="timestamp_test.gcode",
+            status="completed",
+            start_time=datetime(2026, 1, 10, 12, 0, 0),  # Naive datetime (UTC)
+            end_time=datetime(2026, 1, 10, 14, 0, 0),
+        )
+        db_session.add(job)
+        db_session.commit()
+
+        response = client.get(f"/api/jobs/{job.id}", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        # start_time and end_time must end with "Z" for JavaScript to parse as UTC
+        assert data["start_time"].endswith("Z"), (
+            f"start_time must end with 'Z' for UTC, got: {data['start_time']}"
+        )
+        assert data["end_time"].endswith("Z"), (
+            f"end_time must end with 'Z' for UTC, got: {data['end_time']}"
+        )
+
+        # created_at and updated_at should also have Z suffix
+        assert data["created_at"].endswith("Z"), (
+            f"created_at must end with 'Z' for UTC, got: {data['created_at']}"
+        )
+
+    def test_printer_timestamps_include_utc_suffix(
+        self, client, auth_headers, sample_printer
+    ):
+        """Printer timestamps should also include Z suffix."""
+        response = client.get(
+            f"/api/printers/{sample_printer.id}", headers=auth_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+
+        # created_at and updated_at must end with "Z"
+        assert data["created_at"].endswith("Z"), (
+            f"created_at must end with 'Z' for UTC, got: {data['created_at']}"
+        )
