@@ -441,6 +441,35 @@ class TestHistoryChangedHandler:
         assert (datetime.utcnow() - printer.last_seen).total_seconds() < 5
 
     @pytest.mark.asyncio
+    async def test_handle_history_changed_with_list_params(self, db_session, sample_printer):
+        """Test handle_history_changed handles list format params from Moonraker.
+
+        Moonraker sends history notifications as [{"action": ..., "job": ...}]
+        not as a flat dict. This test verifies we handle both formats.
+        """
+        job_data = {
+            "job_id": "list-format-job-123",
+            "filename": "list_format_test.gcode",
+            "start_time": datetime.utcnow().timestamp(),
+            "end_time": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
+            "print_duration": 3600,
+            "filament_used": 500.0,
+            "status": "completed"
+        }
+
+        # Moonraker sends params as a list containing the data dict
+        params = [{"action": "finished", "job": job_data}]
+
+        await handle_history_changed(sample_printer.id, params, db_session)
+
+        # Verify job was synced from history
+        jobs = get_jobs_by_printer(db_session, sample_printer.id)
+        assert len(jobs) > 0
+        assert jobs[0].job_id == "list-format-job-123"
+        assert jobs[0].filename == "list_format_test.gcode"
+        assert jobs[0].status == "completed"
+
+    @pytest.mark.asyncio
     async def test_handle_history_finished_cleans_up_synthetic_jobs(self, db_session, sample_printer):
         """Test handle_history_changed cleans up synthetic job when real job finishes."""
         # Create a synthetic "printing" job (what status_update creates)

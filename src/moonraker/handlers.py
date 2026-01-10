@@ -142,7 +142,7 @@ async def handle_status_update(
 
 
 async def handle_history_changed(
-    printer_id: int, params: dict, db: Optional[Session] = None
+    printer_id: int, params, db: Optional[Session] = None
 ) -> None:
     """
     Handle job_history notification from Moonraker.
@@ -151,7 +151,7 @@ async def handle_history_changed(
 
     Args:
         printer_id: ID of printer sending event
-        params: Event parameters containing action and job
+        params: Event parameters - can be list [data_dict] or dict from Moonraker
         db: Optional database session (will create if not provided)
     """
     should_close_db = False
@@ -160,8 +160,17 @@ async def handle_history_changed(
         should_close_db = True
 
     try:
-        action = params.get("action")
-        job = params.get("job", {})
+        # Moonraker may send params as [data_dict] or as data_dict directly
+        if isinstance(params, list) and len(params) > 0:
+            data = params[0]
+        elif isinstance(params, dict):
+            data = params
+        else:
+            logger.warning(f"Unexpected params type for printer {printer_id} history: {type(params)}")
+            return
+
+        action = data.get("action")
+        job = data.get("job", {})
 
         if not action or not job:
             logger.debug(f"Missing action or job in history change for printer {printer_id}")
