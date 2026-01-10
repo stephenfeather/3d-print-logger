@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from src.api.routes import admin, analytics, jobs, printers
+from src.api.routes import admin, analytics, jobs, maintenance, printers
 from src.config import get_config
 
 # Configure logging
@@ -93,6 +93,7 @@ app.include_router(printers.router, prefix="/api/printers", tags=["printers"])
 app.include_router(jobs.router, prefix="/api/jobs", tags=["jobs"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+app.include_router(maintenance.router, prefix="/api/maintenance", tags=["maintenance"])
 
 
 @app.get("/health", tags=["health"])

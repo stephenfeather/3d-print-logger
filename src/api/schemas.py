@@ -333,3 +333,48 @@ class SystemInfo(BaseModel):
     active_printers: int
     total_jobs: int
     uptime_seconds: Optional[float] = None
+
+
+# ========== Maintenance Schemas (Issue #9) ==========
+
+
+class MaintenanceCreate(BaseModel):
+    """Schema for creating a maintenance record."""
+
+    printer_id: int = Field(..., description="ID of the printer")
+    date: datetime = Field(..., description="When maintenance was performed")
+    category: str = Field(
+        ..., min_length=1, max_length=100, description="Category of maintenance"
+    )
+    description: str = Field(
+        ..., min_length=1, max_length=500, description="What was done"
+    )
+    done: bool = Field(default=False, description="Whether maintenance is completed")
+    cost: Optional[float] = Field(None, ge=0, description="Cost of maintenance")
+    notes: Optional[str] = Field(None, max_length=2000, description="Additional notes")
+
+
+class MaintenanceUpdate(BaseModel):
+    """Schema for updating a maintenance record."""
+
+    date: Optional[datetime] = None
+    category: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = Field(None, min_length=1, max_length=500)
+    done: Optional[bool] = None
+    cost: Optional[float] = Field(None, ge=0)
+    notes: Optional[str] = Field(None, max_length=2000)
+
+
+class MaintenanceResponse(BaseSchema):
+    """Schema for maintenance record response."""
+
+    id: int
+    printer_id: int
+    date: datetime
+    done: bool
+    category: str
+    description: str
+    cost: Optional[float] = None
+    notes: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime

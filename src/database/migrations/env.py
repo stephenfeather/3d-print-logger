@@ -19,6 +19,7 @@ from src.database.models import (  # noqa: F401 - imports needed for autogenerat
     JobDetails,
     JobTotals,
     ApiKey,
+    MaintenanceRecord,
 )
 
 # this is the Alembic Config object, which provides

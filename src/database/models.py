@@ -90,6 +90,12 @@ class Printer(Base, TimestampMixin):
         cascade="all, delete-orphan",
         passive_deletes=True
     )
+    maintenance_records = relationship(
+        "MaintenanceRecord",
+        back_populates="printer",
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
 
     def __repr__(self) -> str:
         return f"<Printer(id={self.id}, name='{self.name}', active={self.is_active})>"
@@ -266,3 +272,37 @@ class ApiKey(Base, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<ApiKey(id={self.id}, name='{self.name}', prefix='{self.key_prefix}', active={self.is_active})>"
+
+
+class MaintenanceRecord(Base, TimestampMixin):
+    """
+    MaintenanceRecord model.
+
+    Tracks printer maintenance and repair history (Issue #9).
+    """
+
+    __tablename__ = "maintenance_records"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    printer_id = Column(
+        Integer,
+        ForeignKey("printers.id", ondelete="CASCADE"),
+        nullable=False
+    )
+    date = Column(DateTime, nullable=False, index=True)
+    done = Column(Boolean, default=False, nullable=False, index=True)
+    category = Column(String(100), nullable=False)
+    description = Column(String(500), nullable=False)
+    cost = Column(Float, nullable=True)
+    notes = Column(String(2000), nullable=True)
+
+    # Relationships
+    printer = relationship("Printer", back_populates="maintenance_records")
+
+    # Composite index for efficient queries
+    __table_args__ = (
+        Index('idx_printer_maintenance_date', 'printer_id', 'date'),
+    )
+
+    def __repr__(self) -> str:
+        return f"<MaintenanceRecord(id={self.id}, printer_id={self.printer_id}, category='{self.category}', done={self.done})>"

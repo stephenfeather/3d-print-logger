@@ -152,3 +152,19 @@ export function capitalize(str: string | null | undefined): string {
   }
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
+
+/**
+ * Format number as currency
+ * @param value - Numeric value
+ * @param currency - Currency code (default USD)
+ * @returns Formatted currency string
+ */
+export function formatCurrency(value: number | null | undefined, currency = 'USD'): string {
+  if (value === null || value === undefined) {
+    return '-'
+  }
+  return new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency,
+  }).format(value)
+}

@@ -13,7 +13,7 @@ from sqlalchemy.pool import StaticPool
 
 # Import models once at module level to avoid re-registration issues
 from src.database.engine import Base
-from src.database.models import Printer, PrintJob, JobDetails, JobTotals, ApiKey
+from src.database.models import Printer, PrintJob, JobDetails, JobTotals, ApiKey, MaintenanceRecord
 
 
 def _set_sqlite_pragma(dbapi_conn, connection_record):

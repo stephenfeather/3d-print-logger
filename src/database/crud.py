@@ -15,7 +15,7 @@ from typing import List, Optional
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
-from src.database.models import ApiKey, JobDetails, JobTotals, Printer, PrintJob
+from src.database.models import ApiKey, JobDetails, JobTotals, MaintenanceRecord, Printer, PrintJob
 
 
 # ========== Printer CRUD ==========
@@ -306,3 +306,129 @@ def update_api_key_last_used(db: Session, api_key_id: int) -> None:
         {"last_used": datetime.utcnow()}
     )
     db.commit()
+
+
+# ========== MaintenanceRecord CRUD ==========
+
+
+def create_maintenance_record(
+    db: Session,
+    printer_id: int,
+    date: datetime,
+    category: str,
+    description: str,
+    **kwargs
+) -> MaintenanceRecord:
+    """
+    Create a new maintenance record.
+
+    Args:
+        db: Database session
+        printer_id: Foreign key to printer
+        date: Date when maintenance was performed
+        category: Category of maintenance (cleaning, calibration, repair, etc.)
+        description: Description of what was done
+        **kwargs: Optional fields (done, cost, notes)
+
+    Returns:
+        Created MaintenanceRecord instance
+    """
+    record = MaintenanceRecord(
+        printer_id=printer_id,
+        date=date,
+        category=category,
+        description=description,
+        **kwargs
+    )
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+def get_maintenance_record(db: Session, record_id: int) -> Optional[MaintenanceRecord]:
+    """
+    Get a maintenance record by its ID.
+
+    Args:
+        db: Database session
+        record_id: Maintenance record ID to look up
+
+    Returns:
+        MaintenanceRecord if found, None otherwise
+    """
+    return db.query(MaintenanceRecord).filter(MaintenanceRecord.id == record_id).first()
+
+
+def get_maintenance_records(
+    db: Session,
+    printer_id: Optional[int] = None,
+    done: Optional[bool] = None
+) -> List[MaintenanceRecord]:
+    """
+    Get maintenance records, optionally filtered by printer and/or completion status.
+
+    Args:
+        db: Database session
+        printer_id: Optional filter by printer ID
+        done: Optional filter by completion status
+
+    Returns:
+        List of MaintenanceRecord instances, ordered by date descending
+    """
+    query = db.query(MaintenanceRecord)
+
+    if printer_id is not None:
+        query = query.filter(MaintenanceRecord.printer_id == printer_id)
+    if done is not None:
+        query = query.filter(MaintenanceRecord.done == done)
+
+    return query.order_by(MaintenanceRecord.date.desc()).all()
+
+
+def update_maintenance_record(
+    db: Session, record_id: int, **kwargs
+) -> Optional[MaintenanceRecord]:
+    """
+    Update a maintenance record.
+
+    Args:
+        db: Database session
+        record_id: Maintenance record ID to update
+        **kwargs: Fields to update (date, category, description, done, cost, notes)
+
+    Returns:
+        Updated MaintenanceRecord if found, None otherwise
+    """
+    record = db.query(MaintenanceRecord).filter(MaintenanceRecord.id == record_id).first()
+
+    if not record:
+        return None
+
+    for key, value in kwargs.items():
+        setattr(record, key, value)
+
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+def delete_maintenance_record(db: Session, record_id: int) -> bool:
+    """
+    Delete a maintenance record.
+
+    Args:
+        db: Database session
+        record_id: Maintenance record ID to delete
+
+    Returns:
+        True if deleted, False if not found
+    """
+    record = db.query(MaintenanceRecord).filter(MaintenanceRecord.id == record_id).first()
+
+    if not record:
+        return False
+
+    db.delete(record)
+    db.commit()
+    return True
