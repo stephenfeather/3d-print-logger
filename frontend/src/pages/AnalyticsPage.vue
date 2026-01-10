@@ -12,11 +12,10 @@ const timelinePeriod = ref<TimelinePeriod>('day')
 const { data: summary, isLoading: summaryLoading } = useDashboardSummary()
 const { data: printerStats, isLoading: printerLoading } = usePrinterStats()
 const { data: filamentUsage, isLoading: filamentLoading } = useFilamentUsage()
-const { data: timeline, isLoading: timelineLoading, refetch: refetchTimeline } = useTimeline(timelinePeriod.value)
+const { data: timeline, isLoading: timelineLoading } = useTimeline(timelinePeriod)
 
 function handlePeriodChange(period: TimelinePeriod) {
   timelinePeriod.value = period
-  refetchTimeline()
 }
 </script>
 

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/vue-query'
+import { computed, type Ref, unref, type MaybeRef } from 'vue'
 import { analyticsApi } from '@/api/analytics'
 import type { TimelinePeriod } from '@/types/analytics'
 
@@ -26,10 +27,10 @@ export function useFilamentUsage() {
   })
 }
 
-export function useTimeline(period: TimelinePeriod = 'day') {
+export function useTimeline(period: MaybeRef<TimelinePeriod> = 'day') {
   return useQuery({
-    queryKey: ['analytics', 'timeline', period],
-    queryFn: () => analyticsApi.getTimeline(period),
+    queryKey: computed(() => ['analytics', 'timeline', unref(period)]),
+    queryFn: () => analyticsApi.getTimeline(unref(period)),
     staleTime: 60000,
   })
 }
