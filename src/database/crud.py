@@ -162,6 +162,46 @@ def get_jobs_by_printer(
     return query.order_by(PrintJob.start_time.desc()).all()
 
 
+def update_active_job_metrics(
+    db: Session,
+    printer_id: int,
+    print_duration: float,
+    filament_used: float,
+) -> Optional[PrintJob]:
+    """
+    Update metrics for an active printing job.
+
+    Finds the most recent "printing" or "paused" job for the printer
+    and updates its duration and filament usage.
+
+    Args:
+        db: Database session
+        printer_id: Printer ID
+        print_duration: Current print duration in seconds
+        filament_used: Current filament used in mm
+
+    Returns:
+        Updated PrintJob if found, None otherwise
+    """
+    # Find active job (most recent printing/paused)
+    job = (
+        db.query(PrintJob)
+        .filter(
+            PrintJob.printer_id == printer_id,
+            PrintJob.status.in_(["printing", "paused"]),
+        )
+        .order_by(PrintJob.start_time.desc())
+        .first()
+    )
+
+    if job:
+        job.print_duration = print_duration
+        job.filament_used = filament_used
+        db.commit()
+
+    return job
+
+
 # ========== JobTotals Management ==========
 
 

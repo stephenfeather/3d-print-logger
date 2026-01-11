@@ -91,11 +91,9 @@ class MoonrakerClient:
             self.ws = await websockets.connect(self.ws_url)
             logger.info(f"Connected to printer {self.printer_id}")
 
-            # Subscribe to print_stats for status updates
-            await self.subscribe("print_stats")
-
-            # Subscribe to virtual_sdcard for print progress
-            await self.subscribe("virtual_sdcard")
+            # Subscribe to print_stats and virtual_sdcard in one call
+            # Multiple subscribe calls may reset the subscription
+            await self.subscribe_objects(["print_stats", "virtual_sdcard"])
 
             # Query current state immediately after subscribing
             # This ensures we get the initial print_stats even if not changing
@@ -146,27 +144,42 @@ class MoonrakerClient:
         Args:
             object_name: Object to subscribe to (e.g., "print_stats")
         """
+        await self.subscribe_objects([object_name])
+
+    async def subscribe_objects(self, object_names: list) -> None:
+        """
+        Subscribe to multiple Moonraker objects at once.
+
+        Subscribing to multiple objects in one call prevents later
+        subscriptions from overwriting earlier ones.
+
+        Args:
+            object_names: List of objects to subscribe to
+        """
         if not self.ws:
             raise RuntimeError(
                 f"WebSocket not connected for printer {self.printer_id}"
             )
 
+        # Build objects dict with None for all attributes
+        objects = {name: None for name in object_names}
+
         request = {
             "jsonrpc": "2.0",
             "method": "printer.objects.subscribe",
-            "params": {"objects": {object_name: None}},
+            "params": {"objects": objects},
             "id": random.randint(1, 10000),
         }
 
         try:
             await self.ws.send(json.dumps(request))
-            logger.debug(
-                f"Subscribed printer {self.printer_id} to {object_name}"
+            logger.info(
+                f"Subscribed printer {self.printer_id} to {object_names}"
             )
         except Exception as e:
             logger.error(
                 f"Failed to subscribe printer {self.printer_id} "
-                f"to {object_name}: {e}"
+                f"to {object_names}: {e}"
             )
 
     async def query_printer_objects(self) -> None:

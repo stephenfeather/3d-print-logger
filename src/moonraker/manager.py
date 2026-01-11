@@ -151,7 +151,7 @@ class MoonrakerManager:
         method = event.get("method")
         params = event.get("params", {})
 
-        logger.debug(f"Event from printer {printer_id}: method={method}")
+        logger.debug(f"Event from printer {printer_id}: {method}")
 
         if method == "notify_status_update":
             await handle_status_update(printer_id, params)

@@ -15,6 +15,7 @@ from src.database.crud import (
     upsert_print_job,
     update_job_totals,
     update_printer_last_seen,
+    update_active_job_metrics,
 )
 from src.database.engine import get_session_local
 from src.database.models import PrintJob
@@ -88,14 +89,26 @@ async def handle_status_update(
 
         print_stats = objects.get("print_stats", {})
         state = print_stats.get("state")
+        print_duration = print_stats.get("print_duration")
+        filament_used = print_stats.get("filament_used")
 
         if not state:
-            logger.debug(f"No state in print_stats for printer {printer_id}")
+            # No state change - just metric updates during printing
+            # Update the active job's metrics if we have any
+            if print_duration is not None or filament_used is not None:
+                update_active_job_metrics(
+                    db,
+                    printer_id,
+                    print_duration or 0.0,
+                    filament_used or 0.0,
+                )
+                # Also update printer last_seen
+                update_printer_last_seen(db, printer_id)
             return
 
         filename = _strip_cache_path(print_stats.get("filename", "unknown"))
-        print_duration = print_stats.get("print_duration", 0.0)
-        filament_used = print_stats.get("filament_used", 0.0)
+        print_duration = print_duration or 0.0
+        filament_used = filament_used or 0.0
 
         logger.debug(
             f"Printer {printer_id} status: {state} - {filename}"
@@ -217,6 +230,10 @@ async def _handle_printing_state(
     """
     Handle printing state - create or update active job.
 
+    First checks for an existing job (from history import or previous status
+    updates) for this printer + filename. If found, updates its metrics.
+    Otherwise creates a synthetic job.
+
     Args:
         printer_id: Printer ID
         filename: Current print filename
@@ -224,8 +241,29 @@ async def _handle_printing_state(
         filament_used: Current filament used in mm
         db: Database session
     """
-    # Get or create job (use filename as identifier for now)
-    # In real Moonraker, print_stats includes job_id
+    # First, check if there's already a printing job for this file
+    # (could be from history import with real Moonraker job_id)
+    existing_job = (
+        db.query(PrintJob)
+        .filter(
+            PrintJob.printer_id == printer_id,
+            PrintJob.filename == filename,
+            PrintJob.status.in_(["printing", "paused"]),
+        )
+        .order_by(PrintJob.start_time.desc())
+        .first()
+    )
+
+    if existing_job:
+        # Update existing job's metrics
+        existing_job.print_duration = print_duration
+        existing_job.filament_used = filament_used
+        existing_job.status = "printing"  # In case it was paused
+        db.commit()
+        logger.debug(f"Updated existing job {existing_job.id} for printer {printer_id}")
+        return
+
+    # No existing job - create a synthetic one
     job_id = f"active-{filename}-{printer_id}"
 
     job = upsert_print_job(
@@ -239,7 +277,7 @@ async def _handle_printing_state(
         filament_used=filament_used,
     )
 
-    logger.debug(f"Created/updated printing job {job.id} for printer {printer_id}")
+    logger.debug(f"Created synthetic printing job {job.id} for printer {printer_id}")
 
 
 async def _handle_paused_state(

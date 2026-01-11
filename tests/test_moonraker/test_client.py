@@ -82,7 +82,7 @@ class TestMoonrakerClientConnection:
 
     @pytest.mark.asyncio
     async def test_connect_subscribes_to_print_stats(self):
-        """Test connect subscribes to print_stats updates."""
+        """Test connect subscribes to print_stats and virtual_sdcard updates."""
         event_handler = AsyncMock()
         client = MoonrakerClient(
             printer_id=1,
@@ -93,14 +93,14 @@ class TestMoonrakerClientConnection:
 
         mock_ws = AsyncMock()
         with patch("websockets.connect", new_callable=AsyncMock, return_value=mock_ws):
-            with patch.object(client, "subscribe", new_callable=AsyncMock) as mock_subscribe:
+            with patch.object(client, "subscribe_objects", new_callable=AsyncMock) as mock_sub:
                 await client.connect()
 
-                mock_subscribe.assert_any_call("print_stats")
+                mock_sub.assert_called_once_with(["print_stats", "virtual_sdcard"])
 
     @pytest.mark.asyncio
-    async def test_connect_subscribes_to_history_changed(self):
-        """Test connect subscribes to notify_history_changed."""
+    async def test_connect_queries_printer_objects(self):
+        """Test connect queries current printer state after subscribing."""
         event_handler = AsyncMock()
         client = MoonrakerClient(
             printer_id=1,
@@ -111,10 +111,11 @@ class TestMoonrakerClientConnection:
 
         mock_ws = AsyncMock()
         with patch("websockets.connect", new_callable=AsyncMock, return_value=mock_ws):
-            with patch.object(client, "subscribe", new_callable=AsyncMock) as mock_subscribe:
-                await client.connect()
+            with patch.object(client, "subscribe_objects", new_callable=AsyncMock):
+                with patch.object(client, "query_printer_objects", new_callable=AsyncMock) as mock_query:
+                    await client.connect()
 
-                mock_subscribe.assert_any_call("notify_history_changed")
+                    mock_query.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_subscribe_sends_correct_jsonrpc_request(self):

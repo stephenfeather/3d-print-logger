@@ -567,3 +567,35 @@ class TestHandlerEdgeCases:
         jobs = get_jobs_by_printer(db_session, sample_printer.id)
         # User data should be preserved
         assert jobs[0].user == "test_user"
+
+    @pytest.mark.asyncio
+    async def test_metric_updates_without_state_change(self, db_session, sample_printer):
+        """Test status updates with only metrics (no state) update active job."""
+        # Create an active printing job
+        initial_job = upsert_print_job(
+            db_session,
+            printer_id=sample_printer.id,
+            job_id="active-metrics-test.gcode-1",
+            filename="metrics-test.gcode",
+            status="printing",
+            start_time=datetime.utcnow(),
+            print_duration=100.0,
+            filament_used=50.0
+        )
+
+        # Status update with only metrics (no state) - this is what Moonraker sends
+        # during active printing
+        params = {
+            "print_stats": {
+                "print_duration": 500.0,
+                "filament_used": 200.0
+                # No "state" field - this is the key point!
+            }
+        }
+
+        await handle_status_update(sample_printer.id, params, db_session)
+
+        # Verify metrics were updated
+        db_session.refresh(initial_job)
+        assert initial_job.print_duration == 500.0
+        assert initial_job.filament_used == 200.0
