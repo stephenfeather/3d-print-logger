@@ -76,9 +76,9 @@ watch(
 <template>
   <div class="filters-panel">
     <div class="filter-group">
-      <label for="printer-select">Printer</label>
+      <label id="printer-label">Printer</label>
       <Select
-        id="printer-select"
+        aria-labelledby="printer-label"
         v-model="selectedPrinter"
         :options="printerOptions"
         optionLabel="label"
@@ -89,9 +89,9 @@ watch(
     </div>
 
     <div class="filter-group">
-      <label for="status-select">Status</label>
+      <label id="status-label">Status</label>
       <Select
-        id="status-select"
+        aria-labelledby="status-label"
         v-model="selectedStatus"
         :options="statusOptions"
         optionLabel="label"
@@ -102,9 +102,9 @@ watch(
     </div>
 
     <div class="filter-group">
-      <label for="date-range-picker">Date Range</label>
+      <label id="date-range-label">Date Range</label>
       <DatePicker
-        id="date-range-picker"
+        aria-labelledby="date-range-label"
         v-model="dateRange"
         selectionMode="range"
         :manualInput="false"
