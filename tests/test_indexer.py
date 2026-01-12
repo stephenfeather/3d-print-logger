@@ -113,23 +113,23 @@ class TestFuzzyMatch:
 
     def test_exact_match_returns_one(self):
         """Exact matches return 1.0"""
-        assert fuzzy_match("test", "test") == 1.0
+        assert fuzzy_match("test", "test") == pytest.approx(1.0)
 
     def test_case_insensitive_match(self):
         """Matching is case-insensitive"""
-        assert fuzzy_match("Test", "test") == 1.0
+        assert fuzzy_match("Test", "test") == pytest.approx(1.0)
 
     def test_substring_match(self):
         """Substring matches return 0.8"""
-        assert fuzzy_match("test", "testing") == 0.8
+        assert fuzzy_match("test", "testing") == pytest.approx(0.8)
 
     def test_target_substring_match(self):
         """When target is substring of query, returns 0.6"""
-        assert fuzzy_match("testing", "test") == 0.6
+        assert fuzzy_match("testing", "test") == pytest.approx(0.6)
 
     def test_no_match_returns_zero(self):
         """No match returns 0.0"""
-        assert fuzzy_match("apple", "banana") == 0.0
+        assert fuzzy_match("apple", "banana") == pytest.approx(0.0)
 
 
 class TestExtractKeywords:

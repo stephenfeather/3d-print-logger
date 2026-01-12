@@ -256,7 +256,7 @@ class TestStatusUpdateHandler:
         # Verify totals were updated
         totals = update_job_totals(db_session, sample_printer.id)
         assert totals.total_jobs == 1
-        assert totals.total_filament_used == 500.0
+        assert totals.total_filament_used == pytest.approx(500.0)
 
     @pytest.mark.asyncio
     async def test_handle_missing_print_stats_is_safe(self, db_session, sample_printer):
@@ -597,8 +597,8 @@ class TestHandlerEdgeCases:
 
         # Verify metrics were updated
         db_session.refresh(initial_job)
-        assert initial_job.print_duration == 500.0
-        assert initial_job.filament_used == 200.0
+        assert initial_job.print_duration == pytest.approx(500.0)
+        assert initial_job.filament_used == pytest.approx(200.0)
 
     @pytest.mark.asyncio
     async def test_datetimes_are_timezone_aware_utc(self, db_session, sample_printer):

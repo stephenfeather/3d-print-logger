@@ -146,11 +146,11 @@ class TestPrinterModel:
         assert printer.make == "Prusa"
         assert printer.model == "MK4"
         assert printer.description == "Office printer with enclosure"
-        assert printer.filament_diameter == 1.75
-        assert printer.nozzle_diameter == 0.4
-        assert printer.bed_x == 220.0
-        assert printer.bed_y == 220.0
-        assert printer.bed_z == 250.0
+        assert printer.filament_diameter == pytest.approx(1.75)
+        assert printer.nozzle_diameter == pytest.approx(0.4)
+        assert printer.bed_x == pytest.approx(220.0)
+        assert printer.bed_y == pytest.approx(220.0)
+        assert printer.bed_z == pytest.approx(250.0)
         assert printer.has_heated_bed is True
         assert printer.has_heated_chamber is False
         assert printer.loaded_materials == [{"type": "PLA", "color": "Black"}]
@@ -170,7 +170,7 @@ class TestPrinterModel:
         assert printer.make is None
         assert printer.model is None
         assert printer.description is None
-        assert printer.filament_diameter == 1.75  # Default value
+        assert printer.filament_diameter == pytest.approx(1.75)  # Default value
         assert printer.nozzle_diameter is None
         assert printer.bed_x is None
         assert printer.bed_y is None
@@ -229,8 +229,8 @@ class TestPrintJobModel:
 
         assert job.id is not None
         assert job.user == "default"
-        assert job.print_duration == 7200.0
-        assert job.filament_used == 15000.0
+        assert job.print_duration == pytest.approx(7200.0)
+        assert job.filament_used == pytest.approx(15000.0)
         assert job.job_metadata["slicer"] == "OrcaSlicer"
         assert job.auxiliary_data["notes"] == "Test print"
 
@@ -335,7 +335,7 @@ class TestPrintJobModel:
         db_session.refresh(job)
 
         assert job.job_metadata["slicer"] == "OrcaSlicer"
-        assert job.job_metadata["layer_height"] == 0.2
+        assert job.job_metadata["layer_height"] == pytest.approx(0.2)
         assert job.job_metadata["nested"]["key"] == "value"
 
 
@@ -356,7 +356,7 @@ class TestJobDetailsModel:
 
         assert details.id is not None
         assert details.print_job_id == sample_print_job.id
-        assert details.layer_height == 0.2
+        assert details.layer_height == pytest.approx(0.2)
         assert details.filament_type == "PLA"
 
     def test_job_details_all_fields(self, db_session, sample_print_job):
@@ -491,10 +491,10 @@ class TestJobTotalsModel:
         db_session.commit()
 
         assert totals.total_jobs == 0
-        assert totals.total_time == 0.0
-        assert totals.total_print_time == 0.0
-        assert totals.total_filament_used == 0.0
-        assert totals.longest_job == 0.0
+        assert totals.total_time == pytest.approx(0.0)
+        assert totals.total_print_time == pytest.approx(0.0)
+        assert totals.total_filament_used == pytest.approx(0.0)
+        assert totals.longest_job == pytest.approx(0.0)
 
     def test_job_totals_with_values(self, db_session, sample_printer):
         """JobTotals can be created with values."""
@@ -512,8 +512,8 @@ class TestJobTotalsModel:
         db_session.commit()
 
         assert totals.total_jobs == 100
-        assert totals.total_time == 360000.0
-        assert totals.longest_job == 7200.0
+        assert totals.total_time == pytest.approx(360000.0)
+        assert totals.longest_job == pytest.approx(7200.0)
 
     def test_job_totals_unique_printer(self, db_session, sample_printer):
         """JobTotals is unique per printer_id."""
@@ -748,7 +748,7 @@ class TestRelationships:
 
         # Access via relationship (uselist=False)
         assert job.job_details is not None
-        assert job.job_details.layer_height == 0.2
+        assert job.job_details.layer_height == pytest.approx(0.2)
         assert job.job_details.filament_type == "PETG"
 
 

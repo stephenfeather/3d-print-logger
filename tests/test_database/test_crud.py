@@ -216,9 +216,9 @@ class TestPrintJobCRUD:
         # Should have updated fields
         assert job2.status == "completed"
         assert job2.end_time == end_time
-        assert job2.print_duration == 3600.0
-        assert job2.total_duration == 3700.0
-        assert job2.filament_used == 15000.0
+        assert job2.print_duration == pytest.approx(3600.0)
+        assert job2.total_duration == pytest.approx(3700.0)
+        assert job2.filament_used == pytest.approx(15000.0)
         # Original fields should remain
         assert job2.filename == "test.gcode"
         assert job2.start_time == start_time
@@ -319,10 +319,10 @@ class TestJobTotalsCRUD:
         assert totals is not None
         assert totals.printer_id == sample_printer.id
         assert totals.total_jobs == 0
-        assert totals.total_time == 0.0
-        assert totals.total_print_time == 0.0
-        assert totals.total_filament_used == 0.0
-        assert totals.longest_job == 0.0
+        assert totals.total_time == pytest.approx(0.0)
+        assert totals.total_print_time == pytest.approx(0.0)
+        assert totals.total_filament_used == pytest.approx(0.0)
+        assert totals.longest_job == pytest.approx(0.0)
 
     def test_update_job_totals_single_job(self, db_session, sample_printer):
         """Test job totals calculation with single completed job."""
@@ -342,10 +342,10 @@ class TestJobTotalsCRUD:
         totals = update_job_totals(db_session, sample_printer.id)
 
         assert totals.total_jobs == 1
-        assert totals.total_time == 2000.0
-        assert totals.total_print_time == 1800.0
-        assert totals.total_filament_used == 5000.0
-        assert totals.longest_job == 2000.0
+        assert totals.total_time == pytest.approx(2000.0)
+        assert totals.total_print_time == pytest.approx(1800.0)
+        assert totals.total_filament_used == pytest.approx(5000.0)
+        assert totals.longest_job == pytest.approx(2000.0)
 
     def test_update_job_totals_multiple_jobs(self, db_session, sample_printer):
         """Test job totals aggregation across multiple jobs."""
@@ -369,10 +369,10 @@ class TestJobTotalsCRUD:
         totals = update_job_totals(db_session, sample_printer.id)
 
         assert totals.total_jobs == 3
-        assert totals.total_time == 1100.0 + 2200.0 + 3300.0  # 6600.0
-        assert totals.total_print_time == 1000.0 + 2000.0 + 3000.0  # 6000.0
-        assert totals.total_filament_used == 2000.0 + 3000.0 + 4000.0  # 9000.0
-        assert totals.longest_job == 3300.0
+        assert totals.total_time == pytest.approx(1100.0 + 2200.0 + 3300.0)  # 6600.0
+        assert totals.total_print_time == pytest.approx(1000.0 + 2000.0 + 3000.0)  # 6000.0
+        assert totals.total_filament_used == pytest.approx(2000.0 + 3000.0 + 4000.0)  # 9000.0
+        assert totals.longest_job == pytest.approx(3300.0)
 
     def test_update_job_totals_ignores_non_completed(self, db_session, sample_printer):
         """Test that only completed jobs are counted in totals."""
@@ -415,9 +415,9 @@ class TestJobTotalsCRUD:
 
         # Only the completed job should be counted
         assert totals.total_jobs == 1
-        assert totals.total_time == 1100.0
-        assert totals.total_print_time == 1000.0
-        assert totals.total_filament_used == 2000.0
+        assert totals.total_time == pytest.approx(1100.0)
+        assert totals.total_print_time == pytest.approx(1000.0)
+        assert totals.total_filament_used == pytest.approx(2000.0)
 
     def test_update_job_totals_handles_null_values(self, db_session, sample_printer):
         """Test totals handle jobs with null duration/filament values."""
@@ -437,9 +437,9 @@ class TestJobTotalsCRUD:
         totals = update_job_totals(db_session, sample_printer.id)
 
         assert totals.total_jobs == 1
-        assert totals.total_print_time == 1000.0
-        assert totals.total_time == 0.0  # Null treated as 0
-        assert totals.total_filament_used == 0.0  # Null treated as 0
+        assert totals.total_print_time == pytest.approx(1000.0)
+        assert totals.total_time == pytest.approx(0.0)  # Null treated as 0
+        assert totals.total_filament_used == pytest.approx(0.0)  # Null treated as 0
 
     def test_update_job_totals_updates_existing(self, db_session, sample_printer):
         """Test that existing JobTotals record is updated, not duplicated."""
@@ -475,7 +475,7 @@ class TestJobTotalsCRUD:
         # Same record should be updated
         assert totals2.id == totals1_id
         assert totals2.total_jobs == 2
-        assert totals2.total_time == 3000.0
+        assert totals2.total_time == pytest.approx(3000.0)
 
 
 # ========== JobDetails CRUD Tests ==========
@@ -497,8 +497,8 @@ class TestJobDetailsCRUD:
 
         assert details.id is not None
         assert details.print_job_id == sample_print_job.id
-        assert details.layer_height == 0.2
-        assert details.first_layer_height == 0.3
+        assert details.layer_height == pytest.approx(0.2)
+        assert details.first_layer_height == pytest.approx(0.3)
         assert details.nozzle_temp == 210
         assert details.bed_temp == 60
         assert details.filament_type == "PLA"
@@ -537,9 +537,9 @@ class TestJobDetailsCRUD:
         assert details.filament_brand == "Overture"
         assert details.filament_color == "Orange"
         assert details.estimated_time == 7200
-        assert details.estimated_filament == 25.5
+        assert details.estimated_filament == pytest.approx(25.5)
         assert details.layer_count == 150
-        assert details.object_height == 30.0
+        assert details.object_height == pytest.approx(30.0)
         assert details.raw_metadata == raw_meta
 
     def test_create_job_details_minimal(self, db_session, sample_print_job):

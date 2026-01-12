@@ -57,7 +57,7 @@ class TestGcodeMetadata:
             slicer_name="OrcaSlicer",
             slicer_version="2.3.1-dev",
         )
-        assert metadata.layer_height == 0.2
+        assert metadata.layer_height == pytest.approx(0.2)
         assert metadata.nozzle_temp == 220
         assert metadata.filament_type == "PLA"
 
@@ -72,7 +72,7 @@ class TestGcodeMetadata:
         metadata = GcodeMetadata(layer_height=0.2, nozzle_temp=220)
         result = metadata.to_dict()
         assert isinstance(result, dict)
-        assert result["layer_height"] == 0.2
+        assert result["layer_height"] == pytest.approx(0.2)
         assert result["nozzle_temp"] == 220
 
 
@@ -94,13 +94,13 @@ class TestGcodeParser:
         """Parse layer height from config."""
         parser = GcodeParser()
         result = parser.parse("; layer_height = 0.2\n")
-        assert result.layer_height == 0.2
+        assert result.layer_height == pytest.approx(0.2)
 
     def test_parse_first_layer_height(self):
         """Parse first layer height from config."""
         parser = GcodeParser()
         result = parser.parse("; initial_layer_print_height = 0.25\n")
-        assert result.first_layer_height == 0.25
+        assert result.first_layer_height == pytest.approx(0.25)
 
     def test_parse_nozzle_temp(self):
         """Parse nozzle temperature (first extruder)."""
@@ -219,8 +219,8 @@ class TestGcodeParser:
         content = SAMPLE_HEADER + "\n; GCODE CONTENT\n" + SAMPLE_CONFIG
         result = parser.parse(content)
 
-        assert result.layer_height == 0.2
-        assert result.first_layer_height == 0.25
+        assert result.layer_height == pytest.approx(0.2)
+        assert result.first_layer_height == pytest.approx(0.25)
         assert result.nozzle_temp == 220
         assert result.bed_temp == 55
         assert result.filament_type == "PLA"
@@ -255,7 +255,7 @@ class TestParseFromFile:
         result = parser.parse_file(gcode_file)
 
         assert isinstance(result, GcodeMetadata)
-        assert result.layer_height == 0.2
+        assert result.layer_height == pytest.approx(0.2)
         assert result.nozzle_temp == 210
 
 
@@ -278,8 +278,8 @@ class TestIntegrationWithSampleFiles:
         result = parser.parse_file(sample_file)
 
         # Verify key fields extracted
-        assert result.layer_height == 0.2
-        assert result.first_layer_height == 0.2  # initial_layer_print_height
+        assert result.layer_height == pytest.approx(0.2)
+        assert result.first_layer_height == pytest.approx(0.2)  # initial_layer_print_height
         assert result.nozzle_temp == 220
         assert result.bed_temp == 55
         assert result.filament_type == "PLA"
@@ -334,14 +334,14 @@ class TestEdgeCases:
         """Handle Windows CRLF line endings."""
         parser = GcodeParser()
         result = parser.parse("; layer_height = 0.2\r\n; nozzle_temperature = 215\r\n")
-        assert result.layer_height == 0.2
+        assert result.layer_height == pytest.approx(0.2)
         assert result.nozzle_temp == 215
 
     def test_extra_whitespace(self):
         """Handle extra whitespace in values."""
         parser = GcodeParser()
         result = parser.parse(";  layer_height  =  0.2  \n")
-        assert result.layer_height == 0.2
+        assert result.layer_height == pytest.approx(0.2)
 
 
 class TestThumbnailExtraction:
