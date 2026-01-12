@@ -6,7 +6,7 @@ Covers job lifecycle tracking and database updates.
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from unittest.mock import AsyncMock, patch
 
 from src.moonraker.handlers import (
@@ -53,7 +53,7 @@ class TestStatusUpdateHandler:
             job_id="test-job-123",
             filename="test_print.gcode",
             status="printing",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             print_duration=100.0,
             filament_used=50.0
         )
@@ -78,7 +78,7 @@ class TestStatusUpdateHandler:
     @pytest.mark.asyncio
     async def test_handle_completed_state_finalizes_job(self, db_session, sample_printer):
         """Test handle_status_update finalizes job when state is complete."""
-        start_time = datetime.utcnow()
+        start_time = datetime.now(UTC)
         initial_job = upsert_print_job(
             db_session,
             printer_id=sample_printer.id,
@@ -111,7 +111,7 @@ class TestStatusUpdateHandler:
     @pytest.mark.asyncio
     async def test_handle_error_state_marks_job_failed(self, db_session, sample_printer):
         """Test handle_status_update marks job as error."""
-        start_time = datetime.utcnow()
+        start_time = datetime.now(UTC)
         initial_job = upsert_print_job(
             db_session,
             printer_id=sample_printer.id,
@@ -150,7 +150,7 @@ class TestStatusUpdateHandler:
             job_id="active-old_print.gcode-" + str(sample_printer.id),
             filename="old_print.gcode",
             status="printing",
-            start_time=datetime.utcnow() - timedelta(hours=2),
+            start_time=datetime.now(UTC) - timedelta(hours=2),
             print_duration=1000.0,
             filament_used=500.0
         )
@@ -201,7 +201,7 @@ class TestStatusUpdateHandler:
             job_id=f"active-old_file.gcode-{sample_printer.id}",
             filename="old_file.gcode",
             status="printing",
-            start_time=datetime.utcnow() - timedelta(hours=2),
+            start_time=datetime.now(UTC) - timedelta(hours=2),
             print_duration=1000.0,
             filament_used=500.0
         )
@@ -228,7 +228,7 @@ class TestStatusUpdateHandler:
     async def test_handle_completion_updates_job_totals(self, db_session, sample_printer):
         """Test handle_status_update updates JobTotals when job completes."""
         # Create and complete a job
-        start_time = datetime.utcnow()
+        start_time = datetime.now(UTC)
         initial_job = upsert_print_job(
             db_session,
             printer_id=sample_printer.id,
@@ -296,8 +296,8 @@ class TestHistoryChangedHandler:
         job_data = {
             "job_id": "history-job-123",
             "filename": "historical_print.gcode",
-            "start_time": datetime.utcnow().timestamp(),
-            "end_time": (datetime.utcnow() + timedelta(hours=2)).timestamp(),
+            "start_time": datetime.now(UTC).timestamp(),
+            "end_time": (datetime.now(UTC) + timedelta(hours=2)).timestamp(),
             "print_duration": 7200,
             "filament_used": 1000.0,
             "status": "completed"
@@ -320,7 +320,7 @@ class TestHistoryChangedHandler:
         job_data = {
             "job_id": "new-history-job",
             "filename": "new_print.gcode",
-            "start_time": datetime.utcnow().timestamp(),
+            "start_time": datetime.now(UTC).timestamp(),
             "end_time": None,
             "print_duration": 0,
             "filament_used": 0,
@@ -346,7 +346,7 @@ class TestHistoryChangedHandler:
             job_id="deleted-job-123",
             filename="deleted_print.gcode",
             status="completed",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             print_duration=1000.0,
             filament_used=500.0
         )
@@ -381,8 +381,8 @@ class TestHistoryChangedHandler:
     @pytest.mark.asyncio
     async def test_handle_history_syncs_job_with_all_fields(self, db_session, sample_printer):
         """Test handle_history_changed correctly syncs all job fields."""
-        start_timestamp = datetime.utcnow().timestamp()
-        end_timestamp = (datetime.utcnow() + timedelta(hours=3)).timestamp()
+        start_timestamp = datetime.now(UTC).timestamp()
+        end_timestamp = (datetime.now(UTC) + timedelta(hours=3)).timestamp()
 
         job_data = {
             "job_id": "complete-history-job",
@@ -421,8 +421,8 @@ class TestHistoryChangedHandler:
         job_data = {
             "job_id": "test-job-789",
             "filename": "test.gcode",
-            "start_time": datetime.utcnow().timestamp(),
-            "end_time": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
+            "start_time": datetime.now(UTC).timestamp(),
+            "end_time": (datetime.now(UTC) + timedelta(hours=1)).timestamp(),
             "print_duration": 3600,
             "filament_used": 500.0,
             "status": "completed"
@@ -438,7 +438,7 @@ class TestHistoryChangedHandler:
         # Verify last_seen was updated
         db_session.refresh(printer)
         assert printer.last_seen is not None
-        assert (datetime.utcnow() - printer.last_seen).total_seconds() < 5
+        assert (datetime.now(UTC) - printer.last_seen).total_seconds() < 5
 
     @pytest.mark.asyncio
     async def test_handle_history_changed_with_list_params(self, db_session, sample_printer):
@@ -450,8 +450,8 @@ class TestHistoryChangedHandler:
         job_data = {
             "job_id": "list-format-job-123",
             "filename": "list_format_test.gcode",
-            "start_time": datetime.utcnow().timestamp(),
-            "end_time": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
+            "start_time": datetime.now(UTC).timestamp(),
+            "end_time": (datetime.now(UTC) + timedelta(hours=1)).timestamp(),
             "print_duration": 3600,
             "filament_used": 500.0,
             "status": "completed"
@@ -479,7 +479,7 @@ class TestHistoryChangedHandler:
             job_id=f"active-test_print.gcode-{sample_printer.id}",
             filename="test_print.gcode",
             status="printing",
-            start_time=datetime.utcnow() - timedelta(hours=1),
+            start_time=datetime.now(UTC) - timedelta(hours=1),
             print_duration=500.0,
             filament_used=250.0
         )
@@ -488,8 +488,8 @@ class TestHistoryChangedHandler:
         job_data = {
             "job_id": "000001234-abcd-efgh",  # Real Moonraker UUID
             "filename": "test_print.gcode",  # Same filename
-            "start_time": (datetime.utcnow() - timedelta(hours=1)).timestamp(),
-            "end_time": datetime.utcnow().timestamp(),
+            "start_time": (datetime.now(UTC) - timedelta(hours=1)).timestamp(),
+            "end_time": datetime.now(UTC).timestamp(),
             "print_duration": 3600,
             "filament_used": 500.0,
             "status": "completed"
@@ -540,7 +540,7 @@ class TestHandlerEdgeCases:
     @pytest.mark.asyncio
     async def test_handler_preserves_existing_data(self, db_session, sample_printer):
         """Test handler doesn't overwrite important data during updates."""
-        start_time = datetime.utcnow()
+        start_time = datetime.now(UTC)
         initial_job = upsert_print_job(
             db_session,
             printer_id=sample_printer.id,
@@ -578,7 +578,7 @@ class TestHandlerEdgeCases:
             job_id="active-metrics-test.gcode-1",
             filename="metrics-test.gcode",
             status="printing",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             print_duration=100.0,
             filament_used=50.0
         )
@@ -599,3 +599,44 @@ class TestHandlerEdgeCases:
         db_session.refresh(initial_job)
         assert initial_job.print_duration == 500.0
         assert initial_job.filament_used == 200.0
+
+    @pytest.mark.asyncio
+    async def test_datetimes_are_timezone_aware_utc(self, db_session, sample_printer):
+        """Test that all datetimes created by handlers are timezone-aware in UTC."""
+        params = {
+            "print_stats": {
+                "state": "printing",
+                "filename": "tz_test.gcode",
+                "print_duration": 0.0,
+                "filament_used": 0.0,
+            }
+        }
+
+        await handle_status_update(sample_printer.id, params, db_session)
+
+        jobs = get_jobs_by_printer(db_session, sample_printer.id)
+        assert len(jobs) > 0
+
+        job = jobs[0]
+        # Verify start_time is timezone-aware UTC
+        assert job.start_time is not None
+        assert job.start_time.tzinfo is not None
+        assert job.start_time.tzinfo == UTC
+
+        # Update to completion
+        params = {
+            "print_stats": {
+                "state": "complete",
+                "filename": "tz_test.gcode",
+                "print_duration": 100.0,
+                "filament_used": 50.0,
+            }
+        }
+
+        await handle_status_update(sample_printer.id, params, db_session)
+
+        db_session.refresh(job)
+        # Verify end_time is also timezone-aware UTC
+        assert job.end_time is not None
+        assert job.end_time.tzinfo is not None
+        assert job.end_time.tzinfo == UTC

@@ -5,7 +5,7 @@ Defines the database schema for printers, print jobs, job details,
 job totals, and API keys. Supports both SQLite and MySQL 8.
 """
 
-from datetime import datetime
+from datetime import datetime, UTC
 from sqlalchemy import (
     Column,
     Integer,
@@ -16,10 +16,39 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     JSON,
+    TypeDecorator,
 )
 from sqlalchemy.orm import relationship
 
 from src.database.engine import Base
+
+
+class UTCDateTime(TypeDecorator):
+    """
+    A DateTime type that stores times in UTC and retrieves them as timezone-aware UTC datetimes.
+
+    Works with SQLite and other databases that don't have native timezone support.
+    All datetimes are stored in UTC and assumed to be UTC when retrieved.
+    """
+    impl = DateTime
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        """Convert timezone-aware datetime to naive UTC for storage."""
+        if value is None:
+            return None
+        if value.tzinfo is not None:
+            # Convert to UTC if not already
+            value = value.astimezone(UTC)
+        # Return as naive datetime (SQLite doesn't support timezone)
+        return value.replace(tzinfo=None)
+
+    def process_result_value(self, value, dialect):
+        """Convert stored naive datetime back to timezone-aware UTC."""
+        if value is None:
+            return None
+        # Assume the stored datetime is in UTC and make it timezone-aware
+        return value.replace(tzinfo=UTC)
 
 
 class TimestampMixin:
@@ -29,14 +58,14 @@ class TimestampMixin:
     """
 
     created_at = Column(
-        DateTime,
-        default=datetime.utcnow,
+        UTCDateTime(),
+        default=lambda: datetime.now(UTC),
         nullable=False
     )
     updated_at = Column(
-        DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        UTCDateTime(),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
         nullable=False
     )
 
@@ -56,7 +85,7 @@ class Printer(Base, TimestampMixin):
     moonraker_url = Column(String(500), nullable=False)
     moonraker_api_key = Column(String(200), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False, index=True)
-    last_seen = Column(DateTime, nullable=True)
+    last_seen = Column(UTCDateTime(), nullable=True)
 
     # Printer hardware details (Issue #8)
     printer_type = Column(String(50), nullable=True)  # FDM, Resin, SLS
@@ -123,8 +152,8 @@ class PrintJob(Base, TimestampMixin):
     url = Column(String(1000), nullable=True)
     status = Column(String(50), nullable=False, index=True)  # completed, error, cancelled, printing, paused
 
-    start_time = Column(DateTime, nullable=False, index=True)
-    end_time = Column(DateTime, nullable=True)
+    start_time = Column(UTCDateTime(), nullable=False, index=True)
+    end_time = Column(UTCDateTime(), nullable=True)
     print_duration = Column(Float, nullable=True)  # Seconds
     total_duration = Column(Float, nullable=True)  # Seconds
     filament_used = Column(Float, nullable=True)   # Millimeters
@@ -242,9 +271,9 @@ class JobTotals(Base):
     longest_job = Column(Float, default=0.0, nullable=False)       # Seconds
 
     last_updated = Column(
-        DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        UTCDateTime(),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
         nullable=False
     )
 
@@ -269,8 +298,8 @@ class ApiKey(Base, TimestampMixin):
     key_prefix = Column(String(10), nullable=False)  # First 8 chars for display
     name = Column(String(100), nullable=False)       # User-friendly identifier
     is_active = Column(Boolean, default=True, nullable=False, index=True)
-    last_used = Column(DateTime, nullable=True)
-    expires_at = Column(DateTime, nullable=True)
+    last_used = Column(UTCDateTime(), nullable=True)
+    expires_at = Column(UTCDateTime(), nullable=True)
 
     def __repr__(self) -> str:
         return f"<ApiKey(id={self.id}, name='{self.name}', prefix='{self.key_prefix}', active={self.is_active})>"
@@ -291,7 +320,7 @@ class MaintenanceRecord(Base, TimestampMixin):
         ForeignKey("printers.id", ondelete="CASCADE"),
         nullable=False
     )
-    date = Column(DateTime, nullable=False, index=True)
+    date = Column(UTCDateTime(), nullable=False, index=True)
     done = Column(Boolean, default=False, nullable=False, index=True)
     category = Column(String(100), nullable=False)
     description = Column(String(500), nullable=False)

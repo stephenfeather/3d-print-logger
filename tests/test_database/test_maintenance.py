@@ -7,7 +7,7 @@ Following Test-Driven Development: Tests written FIRST before implementation.
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from sqlalchemy.exc import IntegrityError
 
 
@@ -20,7 +20,7 @@ class TestMaintenanceRecordModel:
 
         record = MaintenanceRecord(
             printer_id=sample_printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="cleaning",
             description="Cleaned nozzle and bed"
         )
@@ -36,7 +36,7 @@ class TestMaintenanceRecordModel:
         """MaintenanceRecord can be created with all fields."""
         from src.database.models import MaintenanceRecord
 
-        maintenance_date = datetime.utcnow()
+        maintenance_date = datetime.now(UTC)
 
         record = MaintenanceRecord(
             printer_id=sample_printer.id,
@@ -61,7 +61,7 @@ class TestMaintenanceRecordModel:
 
         record = MaintenanceRecord(
             printer_id=sample_printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="inspection",
             description="Monthly inspection"
         )
@@ -79,7 +79,7 @@ class TestMaintenanceRecordModel:
 
         record = MaintenanceRecord(
             printer_id=sample_printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="calibration",
             description="Bed leveling"
         )
@@ -97,7 +97,7 @@ class TestMaintenanceRecordModel:
 
         record = MaintenanceRecord(
             printer_id=sample_printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="repair",
             description="Fixed extruder gear"
         )
@@ -122,7 +122,7 @@ class TestMaintenanceRecordModel:
 
         record = MaintenanceRecord(
             printer_id=printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="cleaning",
             description="Test cleaning"
         )
@@ -146,7 +146,7 @@ class TestMaintenanceRecordModel:
 
         record = MaintenanceRecord(
             printer_id=sample_printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="calibration",
             description="Test repr"
         )
@@ -164,13 +164,13 @@ class TestMaintenanceRecordModel:
 
         record1 = MaintenanceRecord(
             printer_id=sample_printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="cleaning",
             description="Cleaning 1"
         )
         record2 = MaintenanceRecord(
             printer_id=sample_printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="calibration",
             description="Calibration 1"
         )
@@ -194,7 +194,7 @@ class TestMaintenanceRecordCRUD:
         record = create_maintenance_record(
             db_session,
             printer_id=sample_printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="cleaning",
             description="Nozzle cleaning"
         )
@@ -211,7 +211,7 @@ class TestMaintenanceRecordCRUD:
         record = create_maintenance_record(
             db_session,
             printer_id=sample_printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="parts_replacement",
             description="New nozzle",
             done=True,
@@ -230,7 +230,7 @@ class TestMaintenanceRecordCRUD:
         created = create_maintenance_record(
             db_session,
             printer_id=sample_printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="inspection",
             description="Weekly check"
         )
@@ -256,14 +256,14 @@ class TestMaintenanceRecordCRUD:
         create_maintenance_record(
             db_session,
             printer_id=sample_printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="cleaning",
             description="Cleaning 1"
         )
         create_maintenance_record(
             db_session,
             printer_id=sample_printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="calibration",
             description="Calibration 1"
         )
@@ -285,14 +285,14 @@ class TestMaintenanceRecordCRUD:
         create_maintenance_record(
             db_session,
             printer_id=printer1.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="cleaning",
             description="P1 cleaning"
         )
         create_maintenance_record(
             db_session,
             printer_id=printer2.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="calibration",
             description="P2 calibration"
         )
@@ -309,7 +309,7 @@ class TestMaintenanceRecordCRUD:
         create_maintenance_record(
             db_session,
             printer_id=sample_printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="cleaning",
             description="Done cleaning",
             done=True
@@ -317,7 +317,7 @@ class TestMaintenanceRecordCRUD:
         create_maintenance_record(
             db_session,
             printer_id=sample_printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="calibration",
             description="Pending calibration",
             done=False
@@ -335,8 +335,8 @@ class TestMaintenanceRecordCRUD:
         """get_maintenance_records returns records ordered by date descending."""
         from src.database.crud import create_maintenance_record, get_maintenance_records
 
-        old_date = datetime.utcnow() - timedelta(days=7)
-        new_date = datetime.utcnow()
+        old_date = datetime.now(UTC) - timedelta(days=7)
+        new_date = datetime.now(UTC)
 
         create_maintenance_record(
             db_session,
@@ -366,7 +366,7 @@ class TestMaintenanceRecordCRUD:
         record = create_maintenance_record(
             db_session,
             printer_id=sample_printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="cleaning",
             description="Original"
         )
@@ -407,7 +407,7 @@ class TestMaintenanceRecordCRUD:
         record = create_maintenance_record(
             db_session,
             printer_id=sample_printer.id,
-            date=datetime.utcnow(),
+            date=datetime.now(UTC),
             category="cleaning",
             description="To be deleted"
         )

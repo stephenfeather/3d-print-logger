@@ -6,7 +6,7 @@ history changes, and printer state changes.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -272,7 +272,7 @@ async def _handle_printing_state(
         job_id=job_id,
         filename=filename,
         status="printing",
-        start_time=datetime.utcnow(),
+        start_time=datetime.now(UTC),
         print_duration=print_duration,
         filament_used=filament_used,
     )
@@ -305,7 +305,7 @@ async def _handle_paused_state(
         job_id=job_id,
         filename=filename,
         status="paused",
-        start_time=datetime.utcnow(),
+        start_time=datetime.now(UTC),
         print_duration=print_duration,
         filament_used=filament_used,
     )
@@ -343,8 +343,8 @@ async def _handle_completion_state(
         job_id=job_id,
         filename=filename,
         status=final_status,
-        start_time=datetime.utcnow(),
-        end_time=datetime.utcnow(),
+        start_time=datetime.now(UTC),
+        end_time=datetime.now(UTC),
         print_duration=print_duration,
         filament_used=filament_used,
     )
@@ -368,7 +368,7 @@ async def _handle_completion_state(
     )
 
     if stale_jobs:
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         for stale_job in stale_jobs:
             stale_job.status = "cancelled"
             stale_job.end_time = now
@@ -412,7 +412,7 @@ async def _handle_standby_state(
     )
 
     if stale_jobs:
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         for job in stale_jobs:
             job.status = "cancelled"
             job.end_time = now
@@ -440,14 +440,14 @@ async def _sync_finished_job(
     status = job_data.get("status", "completed")
 
     # Convert timestamp fields if present
-    start_time = datetime.utcnow()
+    start_time = datetime.now(UTC)
     if "start_time" in job_data and job_data["start_time"]:
         try:
             start_time = datetime.fromtimestamp(job_data["start_time"])
         except (ValueError, TypeError):
             pass
 
-    end_time = datetime.utcnow()
+    end_time = datetime.now(UTC)
     if "end_time" in job_data and job_data["end_time"]:
         try:
             end_time = datetime.fromtimestamp(job_data["end_time"])
@@ -517,7 +517,7 @@ async def _sync_added_job(
     job_id = job_data.get("job_id", "unknown")
     filename = _strip_cache_path(job_data.get("filename", "unknown"))
 
-    start_time = datetime.utcnow()
+    start_time = datetime.now(UTC)
     if "start_time" in job_data and job_data["start_time"]:
         try:
             start_time = datetime.fromtimestamp(job_data["start_time"])

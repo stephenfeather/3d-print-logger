@@ -11,7 +11,7 @@ Covers all CRUD operations for:
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from unittest.mock import patch
 
 # These imports will fail until crud.py is implemented
@@ -157,7 +157,7 @@ class TestPrinterCRUD:
 
         assert printer.last_seen is not None
         # Verify it's recent (within last minute)
-        time_diff = datetime.utcnow() - printer.last_seen
+        time_diff = datetime.now(UTC) - printer.last_seen
         assert time_diff.total_seconds() < 60
 
 
@@ -174,7 +174,7 @@ class TestPrintJobCRUD:
             job_id="new-job-123",
             filename="test_print.gcode",
             status="printing",
-            start_time=datetime.utcnow()
+            start_time=datetime.now(UTC)
         )
 
         assert job.id is not None
@@ -185,7 +185,7 @@ class TestPrintJobCRUD:
 
     def test_upsert_print_job_updates_existing(self, db_session, sample_printer):
         """Test upsert updates existing job with same (printer_id, job_id)."""
-        start_time = datetime.utcnow()
+        start_time = datetime.now(UTC)
 
         # Create initial job
         job1 = upsert_print_job(
@@ -199,7 +199,7 @@ class TestPrintJobCRUD:
         original_id = job1.id
 
         # Update the same job (same printer_id + job_id)
-        end_time = datetime.utcnow()
+        end_time = datetime.now(UTC)
         job2 = upsert_print_job(
             db_session,
             printer_id=sample_printer.id,
@@ -234,7 +234,7 @@ class TestPrintJobCRUD:
             job_id="meta-job",
             filename="meta.gcode",
             status="completed",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             job_metadata=metadata,
             auxiliary_data=auxiliary
         )
@@ -252,7 +252,7 @@ class TestPrintJobCRUD:
                 job_id=f"job-{i}",
                 filename=f"file_{i}.gcode",
                 status="completed" if i < 2 else "error",
-                start_time=datetime.utcnow() - timedelta(hours=3 - i)
+                start_time=datetime.now(UTC) - timedelta(hours=3 - i)
             )
 
         jobs = get_jobs_by_printer(db_session, sample_printer.id)
@@ -272,7 +272,7 @@ class TestPrintJobCRUD:
             job_id="completed-1",
             filename="c1.gcode",
             status="completed",
-            start_time=datetime.utcnow()
+            start_time=datetime.now(UTC)
         )
         upsert_print_job(
             db_session,
@@ -280,7 +280,7 @@ class TestPrintJobCRUD:
             job_id="completed-2",
             filename="c2.gcode",
             status="completed",
-            start_time=datetime.utcnow()
+            start_time=datetime.now(UTC)
         )
         upsert_print_job(
             db_session,
@@ -288,7 +288,7 @@ class TestPrintJobCRUD:
             job_id="error-1",
             filename="e1.gcode",
             status="error",
-            start_time=datetime.utcnow()
+            start_time=datetime.now(UTC)
         )
 
         completed_jobs = get_jobs_by_printer(db_session, sample_printer.id, status="completed")
@@ -333,7 +333,7 @@ class TestJobTotalsCRUD:
             job_id="completed-job",
             filename="test.gcode",
             status="completed",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             print_duration=1800.0,  # 30 minutes
             total_duration=2000.0,  # 33+ minutes
             filament_used=5000.0    # 5 meters
@@ -362,7 +362,7 @@ class TestJobTotalsCRUD:
                 printer_id=sample_printer.id,
                 filename="test.gcode",
                 status="completed",
-                start_time=datetime.utcnow(),
+                start_time=datetime.now(UTC),
                 **data
             )
 
@@ -383,7 +383,7 @@ class TestJobTotalsCRUD:
             job_id="completed",
             filename="c.gcode",
             status="completed",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             print_duration=1000.0,
             total_duration=1100.0,
             filament_used=2000.0
@@ -394,7 +394,7 @@ class TestJobTotalsCRUD:
             job_id="error",
             filename="e.gcode",
             status="error",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             print_duration=500.0,
             total_duration=600.0,
             filament_used=1000.0
@@ -405,7 +405,7 @@ class TestJobTotalsCRUD:
             job_id="cancelled",
             filename="x.gcode",
             status="cancelled",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             print_duration=300.0,
             total_duration=400.0,
             filament_used=500.0
@@ -428,7 +428,7 @@ class TestJobTotalsCRUD:
             job_id="partial-data",
             filename="p.gcode",
             status="completed",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             print_duration=1000.0,
             total_duration=None,  # Null
             filament_used=None    # Null
@@ -450,7 +450,7 @@ class TestJobTotalsCRUD:
             job_id="j1",
             filename="f1.gcode",
             status="completed",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             total_duration=1000.0,
             print_duration=900.0,
             filament_used=1000.0
@@ -465,7 +465,7 @@ class TestJobTotalsCRUD:
             job_id="j2",
             filename="f2.gcode",
             status="completed",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             total_duration=2000.0,
             print_duration=1800.0,
             filament_used=2000.0
@@ -580,7 +580,7 @@ class TestApiKeyCRUD:
 
     def test_create_api_key_with_expiry(self, db_session):
         """Test creating an API key with expiration."""
-        expiry = datetime.utcnow() + timedelta(days=30)
+        expiry = datetime.now(UTC) + timedelta(days=30)
 
         api_key = create_api_key(
             db_session,
@@ -655,7 +655,7 @@ class TestApiKeyCRUD:
 
         assert api_key.last_used is not None
         # Verify it's recent (within last minute)
-        time_diff = datetime.utcnow() - api_key.last_used
+        time_diff = datetime.now(UTC) - api_key.last_used
         assert time_diff.total_seconds() < 60
 
     def test_update_api_key_last_used_multiple_times(self, db_session):

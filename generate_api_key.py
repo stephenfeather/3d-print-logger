@@ -4,7 +4,7 @@
 import secrets
 import hashlib
 from sqlalchemy import create_engine, text
-from datetime import datetime
+from datetime import datetime, UTC
 
 # Generate new API key
 random_part = secrets.token_hex(32)
@@ -24,7 +24,7 @@ with engine.connect() as conn:
         "key_hash": key_hash,
         "key_prefix": key_prefix,
         "name": "bootstrap",
-        "now": datetime.utcnow()
+        "now": datetime.now(UTC)
     })
     conn.commit()
 

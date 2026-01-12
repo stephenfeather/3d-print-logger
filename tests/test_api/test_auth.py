@@ -1,6 +1,6 @@
 """Tests for API authentication."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 import pytest
 from fastapi import status
@@ -78,7 +78,7 @@ class TestApiKeyAuth:
             key_hash=key_hash,
             key_prefix=full_key[:12],
             name="Expired Key",
-            expires_at=datetime.utcnow() - timedelta(days=1),
+            expires_at=datetime.now(UTC) - timedelta(days=1),
         )
 
         response = client.get("/api/printers", headers={"X-API-Key": full_key})

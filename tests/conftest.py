@@ -6,7 +6,7 @@ mock printers, and other test utilities.
 """
 
 import pytest
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -85,7 +85,7 @@ def sample_print_job(db_session, sample_printer):
         job_id="sample-job-123",
         filename="sample_print.gcode",
         status="completed",
-        start_time=datetime.utcnow(),
+        start_time=datetime.now(UTC),
         print_duration=3600.0,
         filament_used=10000.0
     )

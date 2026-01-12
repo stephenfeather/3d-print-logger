@@ -5,7 +5,7 @@ Following Test-Driven Development: Tests written FIRST before implementation.
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
@@ -192,7 +192,7 @@ class TestPrintJobModel:
             job_id="abc-123-def",
             filename="test.gcode",
             status="completed",
-            start_time=datetime.utcnow()
+            start_time=datetime.now(UTC)
         )
         db_session.add(job)
         db_session.commit()
@@ -207,7 +207,7 @@ class TestPrintJobModel:
         """PrintJob can be created with all fields."""
         from src.database.models import PrintJob
 
-        start = datetime.utcnow()
+        start = datetime.now(UTC)
         end = start + timedelta(hours=2)
 
         job = PrintJob(
@@ -243,7 +243,7 @@ class TestPrintJobModel:
             job_id="fk-test",
             filename="test.gcode",
             status="completed",
-            start_time=datetime.utcnow()
+            start_time=datetime.now(UTC)
         )
         db_session.add(job)
         db_session.commit()
@@ -262,7 +262,7 @@ class TestPrintJobModel:
             job_id="duplicate-job",
             filename="test1.gcode",
             status="completed",
-            start_time=datetime.utcnow()
+            start_time=datetime.now(UTC)
         )
         db_session.add(job1)
         db_session.commit()
@@ -272,7 +272,7 @@ class TestPrintJobModel:
             job_id="duplicate-job",  # Same job_id for same printer
             filename="test2.gcode",
             status="completed",
-            start_time=datetime.utcnow()
+            start_time=datetime.now(UTC)
         )
         db_session.add(job2)
 
@@ -295,7 +295,7 @@ class TestPrintJobModel:
             job_id="cascade-test",
             filename="test.gcode",
             status="completed",
-            start_time=datetime.utcnow()
+            start_time=datetime.now(UTC)
         )
         db_session.add(job)
         db_session.commit()
@@ -325,7 +325,7 @@ class TestPrintJobModel:
             job_id="json-test",
             filename="test.gcode",
             status="completed",
-            start_time=datetime.utcnow(),
+            start_time=datetime.now(UTC),
             job_metadata=job_meta
         )
         db_session.add(job)
@@ -442,7 +442,7 @@ class TestJobDetailsModel:
             job_id="details-cascade",
             filename="test.gcode",
             status="completed",
-            start_time=datetime.utcnow()
+            start_time=datetime.now(UTC)
         )
         db_session.add(job)
         db_session.commit()
@@ -635,7 +635,7 @@ class TestApiKeyModel:
         """ApiKey can have expiration date."""
         from src.database.models import ApiKey
 
-        expires = datetime.utcnow() + timedelta(days=30)
+        expires = datetime.now(UTC) + timedelta(days=30)
 
         api_key = ApiKey(
             key_hash="b" * 64,
@@ -647,7 +647,7 @@ class TestApiKeyModel:
         db_session.commit()
 
         assert api_key.expires_at is not None
-        assert api_key.expires_at > datetime.utcnow()
+        assert api_key.expires_at > datetime.now(UTC)
 
     def test_api_key_timestamps(self, db_session):
         """ApiKey has created_at and updated_at timestamps."""
@@ -684,14 +684,14 @@ class TestRelationships:
             job_id="job-1",
             filename="file1.gcode",
             status="completed",
-            start_time=datetime.utcnow()
+            start_time=datetime.now(UTC)
         )
         job2 = PrintJob(
             printer_id=printer.id,
             job_id="job-2",
             filename="file2.gcode",
             status="error",
-            start_time=datetime.utcnow()
+            start_time=datetime.now(UTC)
         )
         db_session.add_all([job1, job2])
         db_session.commit()
@@ -733,7 +733,7 @@ class TestRelationships:
             job_id="details-job",
             filename="test.gcode",
             status="completed",
-            start_time=datetime.utcnow()
+            start_time=datetime.now(UTC)
         )
         db_session.add(job)
         db_session.commit()

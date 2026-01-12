@@ -9,7 +9,7 @@ Provides Create, Read, Update, Delete operations for:
 - ApiKey
 """
 
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import List, Optional
 
 from sqlalchemy import and_
@@ -77,7 +77,7 @@ def update_printer_last_seen(db: Session, printer_id: int) -> None:
         printer_id: Printer ID to update
     """
     db.query(Printer).filter(Printer.id == printer_id).update(
-        {"last_seen": datetime.utcnow()}
+        {"last_seen": datetime.now(UTC)}
     )
     db.commit()
 
@@ -343,7 +343,7 @@ def update_api_key_last_used(db: Session, api_key_id: int) -> None:
         api_key_id: API key ID to update
     """
     db.query(ApiKey).filter(ApiKey.id == api_key_id).update(
-        {"last_used": datetime.utcnow()}
+        {"last_used": datetime.now(UTC)}
     )
     db.commit()
 
