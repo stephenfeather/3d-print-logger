@@ -1,5 +1,5 @@
 # Session: 3d-print-logger
-Updated: 2026-01-10T13:20:37.025Z
+Updated: 2026-01-12T03:42:52.836Z
 
 ## Goal
 Create a hosted application that logs 3D print jobs from Klipper with web-based analytics. Done when:
@@ -241,8 +241,42 @@ Create a hosted application that logs 3D print jobs from Klipper with web-based 
     - Applied to all response schemas: PrinterResponse, JobResponse, PrinterStats, ApiKeyResponse, MaintenanceResponse
     - Tests: 2 new tests (TestTimestampSerialization) verifying Z suffix in API responses
     - Verified: API now returns "2026-01-10T12:00:00.000000Z" format
-- Now: [→] Monitoring production system, ready for next enhancement
+  - [x] Issue #17: Prevent synthetic job IDs from overwriting cancelled/failed jobs (FIXED)
+    - Root cause: Synthetic job_id (active-{filename}-{printer_id}) was identical on reprint
+    - Fix: Add Unix timestamp to job_id when existing terminal-state job found
+    - Test: test_cancelled_job_not_overwritten_on_reprint verifies fix
+    - Commit: 787fd8d
+  - [x] Code Quality: SonarQube S1481 Cleanup (COMPLETE)
+    - Fixed 11 unused variable violations
+    - Production: src/moonraker/history.py (2 fixes: total → _, success → _)
+    - Tests: 9 fixes across test_database, test_gcode, test_moonraker
+    - All 209 relevant tests passing (2 pre-existing failures unrelated)
+    - Commit: 2a6ac48
+  - [x] Issue #19: Associate form labels with controls (Accessibility Fix) (COMPLETE)
+    - Requirement: Form labels must be associated with form controls via for/id attributes
+    - Status: Already fixed in code (commit e9b285b)
+    - Verification: All three filter controls properly associated:
+      - Line 79: Printer label → id="printer-select"
+      - Line 92: Status label → id="status-select"
+      - Line 105: Date Range label → id="date-range-picker"
+    - GitHub issue closed
+  - [x] SonarQube configuration fix (COMPLETE)
+    - Issue: SonarQube was scanning *.test.ts files in frontend as source code
+    - Fix: Updated sonar-project.properties to exclude **/*.test.ts and **/*.spec.ts patterns
+    - Result: Frontend test files now properly ignored by SonarQube analysis
+    - Commit: 29de179
+  - [x] Accessibility fixes (SonarQube Web:S5254, S6819, S6853) (COMPLETE)
+    - Web:S5254: Added `lang="en"` to HTML root element (frontend/index.html)
+    - Web:S6819: Removed unnecessary `role="img"` from decorative SVG icon (IconTooling.vue)
+    - Web:S6853 (3 issues): Updated form labels to use `aria-labelledby` for PrimeVue components (JobFiltersPanel.vue)
+    - Updated tests to check aria-labelledby instead of for/id attributes (JobFiltersPanel.spec.ts)
+    - Removed unused beforeEach import from test file
+    - Commits: 84f50ba, 6a860e0
+- Now: [→] Code quality improvements from SonarQube report (remaining: S1244 float equality, S3776 cognitive complexity)
 - Next:
+  - SonarQube S1244 (72 MAJOR): Float equality checks (e.g., progress, filament usage)
+  - SonarQube S3776 (9 CRITICAL): Cognitive complexity reduction (handlers.py, parser.py)
+  - SonarQube S1481: Completed ✅
   - GitHub open issues: #5 (job details), #6 (dashboard layout bug)
   - Future enhancements (WebSocket real-time updates for frontend, Spoolman integration)
   - Consider writing tests for backfill functionality (currently manual testing only)

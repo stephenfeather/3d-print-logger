@@ -104,30 +104,49 @@ def fuzzy_match(query_term: str, target: str) -> float:
     return 0.0
 
 
+def _parse_yaml_block(yaml_text: str) -> Dict:
+    """Parse simple YAML from text block. Handles key: value pairs and arrays.
+
+    Args:
+        yaml_text: YAML text without delimiters
+
+    Returns:
+        Dictionary of parsed key-value pairs
+    """
+    result = {}
+    for line in yaml_text.split("\n"):
+        if ":" not in line:
+            continue
+
+        key, value = line.split(":", 1)
+        key = key.strip()
+        value = value.strip()
+
+        # Handle arrays [item1, item2]
+        if value.startswith("[") and value.endswith("]"):
+            items = value[1:-1].split(",")
+            value = [item.strip().strip("'\"") for item in items]
+
+        result[key] = value
+
+    return result
+
+
 def parse_frontmatter(content: str) -> Tuple[Dict, str]:
     """Extract YAML frontmatter and content from markdown."""
     frontmatter = {}
     body = content
 
-    if content.startswith("---"):
-        parts = content.split("---", 2)
-        if len(parts) >= 3:
-            fm_text = parts[1].strip()
-            body = parts[2].strip()
+    if not content.startswith("---"):
+        return frontmatter, body
 
-            # Simple YAML parsing (no external deps)
-            for line in fm_text.split("\n"):
-                if ":" in line:
-                    key, value = line.split(":", 1)
-                    key = key.strip()
-                    value = value.strip()
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        return frontmatter, body
 
-                    # Handle arrays [item1, item2]
-                    if value.startswith("[") and value.endswith("]"):
-                        items = value[1:-1].split(",")
-                        value = [item.strip().strip("'\"") for item in items]
-
-                    frontmatter[key] = value
+    fm_text = parts[1].strip()
+    body = parts[2].strip()
+    frontmatter = _parse_yaml_block(fm_text)
 
     return frontmatter, body
 
