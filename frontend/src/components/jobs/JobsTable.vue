@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useJobs, useDeleteJob } from '@/composables/useJobs'
-import { formatDuration, formatDateTime } from '@/utils/formatters'
+import { formatDuration, formatDateTime, humanizeFilename } from '@/utils/formatters'
 import { JOB_STATUS_COLORS, JOB_STATUS_LABELS, PAGE_SIZE_OPTIONS } from '@/utils/constants'
 import type { JobStatus, PrintJob } from '@/types/job'
 import DataTable from 'primevue/datatable'
@@ -45,13 +45,8 @@ function getStatusLabel(status: string): string {
   return JOB_STATUS_LABELS[status as JobStatus] || status
 }
 
-function normalizeTitle(filename: string): string {
-  const name = filename.includes('.') ? filename.split('.').slice(0, -1).join('.') : filename
-  return name.replaceAll(/[_-]+/, ' ').replaceAll(/\b\w/, (c) => c.toUpperCase())
-}
-
 function getDisplayTitle(job: PrintJob): string {
-  return job.title || normalizeTitle(job.filename)
+  return job.title || humanizeFilename(job.filename)
 }
 
 function openDetails(job: PrintJob) {

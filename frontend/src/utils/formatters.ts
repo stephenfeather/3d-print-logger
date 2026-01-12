@@ -168,3 +168,21 @@ export function formatCurrency(value: number | null | undefined, currency = 'USD
     currency,
   }).format(value)
 }
+
+/**
+ * Humanize a filename into a readable title
+ * Removes extension, replaces underscores/hyphens with spaces, capitalizes words
+ * @param filename - The filename to humanize (e.g., "benchy_v2.gcode")
+ * @returns Humanized title (e.g., "Benchy V2")
+ */
+export function humanizeFilename(filename: string | null | undefined): string {
+  if (!filename) {
+    return ''
+  }
+  // Remove extension
+  const name = filename.includes('.') ? filename.split('.').slice(0, -1).join('.') : filename
+  // Replace underscores/hyphens with spaces and capitalize each word
+  return name
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}

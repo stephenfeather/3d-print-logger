@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useRecentJobs } from '@/composables/useJobs'
-import { formatDuration, formatRelativeTime } from '@/utils/formatters'
+import { formatDuration, formatRelativeTime, humanizeFilename } from '@/utils/formatters'
 import { JOB_STATUS_COLORS, JOB_STATUS_LABELS } from '@/utils/constants'
-import type { JobStatus } from '@/types/job'
+import type { JobStatus, PrintJob } from '@/types/job'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
@@ -16,6 +16,10 @@ function getStatusColor(status: string): string {
 
 function getStatusLabel(status: string): string {
   return JOB_STATUS_LABELS[status as JobStatus] || status
+}
+
+function getDisplayTitle(job: PrintJob): string {
+  return job.title || humanizeFilename(job.filename)
 }
 </script>
 
@@ -54,9 +58,9 @@ function getStatusLabel(status: string): string {
           </div>
         </template>
       </Column>
-      <Column field="filename" header="File">
+      <Column field="filename" header="Print">
         <template #body="{ data }">
-          <span class="filename" :title="data.filename">{{ data.filename }}</span>
+          <span class="filename" :title="data.filename">{{ getDisplayTitle(data) }}</span>
         </template>
       </Column>
       <Column field="status" header="Status">

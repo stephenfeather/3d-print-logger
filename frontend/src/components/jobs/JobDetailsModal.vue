@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { formatDuration, formatDateTime, formatTemp, formatFilament } from '@/utils/formatters'
+import { formatDuration, formatDateTime, formatTemp, formatFilament, humanizeFilename } from '@/utils/formatters'
 import { JOB_STATUS_COLORS, JOB_STATUS_LABELS } from '@/utils/constants'
 import { useUpdateJob } from '@/composables/useJobs'
 import type { PrintJob, JobStatus } from '@/types/job'
@@ -30,7 +30,7 @@ watch(
   () => props.job,
   (newJob) => {
     if (newJob) {
-      editTitle.value = newJob.title || normalizeTitle(newJob.filename)
+      editTitle.value = newJob.title || humanizeFilename(newJob.filename)
       editUrl.value = newJob.url || ''
     }
     isEditing.value = false
@@ -38,14 +38,9 @@ watch(
   { immediate: true }
 )
 
-function normalizeTitle(filename: string): string {
-  const name = filename.includes('.') ? filename.split('.').slice(0, -1).join('.') : filename
-  return name.replaceAll(/[_-]+/, ' ').replaceAll(/\b\w/, (c) => c.toUpperCase())
-}
-
 const displayTitle = computed(() => {
   if (!props.job) return ''
-  return props.job.title || normalizeTitle(props.job.filename)
+  return props.job.title || humanizeFilename(props.job.filename)
 })
 
 const estimatedCompletion = computed(() => {
@@ -70,7 +65,7 @@ function handleClose() {
 
 function startEditing() {
   if (props.job) {
-    editTitle.value = props.job.title || normalizeTitle(props.job.filename)
+    editTitle.value = props.job.title || humanizeFilename(props.job.filename)
     editUrl.value = props.job.url || ''
   }
   isEditing.value = true
@@ -78,7 +73,7 @@ function startEditing() {
 
 function cancelEditing() {
   if (props.job) {
-    editTitle.value = props.job.title || normalizeTitle(props.job.filename)
+    editTitle.value = props.job.title || humanizeFilename(props.job.filename)
     editUrl.value = props.job.url || ''
   }
   isEditing.value = false
