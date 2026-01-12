@@ -160,6 +160,28 @@ async def handle_status_update(
             db.close()
 
 
+async def _handle_history_action(
+    printer_id: int, action: str, job: dict, db: Session
+) -> None:
+    """
+    Route history action to appropriate handler.
+
+    Args:
+        printer_id: Printer ID
+        action: History action type (finished, added, deleted, etc.)
+        job: Job data
+        db: Database session
+    """
+    if action == "finished":
+        await _sync_finished_job(printer_id, job, db)
+    elif action == "added":
+        await _sync_added_job(printer_id, job, db)
+    elif action == "deleted":
+        logger.debug(f"Job {job.get('job_id')} deleted from printer {printer_id}")
+    else:
+        logger.debug(f"Unknown history action '{action}' for printer {printer_id}")
+
+
 async def handle_history_changed(
     printer_id: int, params, db: Optional[Session] = None
 ) -> None:
@@ -179,13 +201,8 @@ async def handle_history_changed(
         should_close_db = True
 
     try:
-        # Moonraker may send params as [data_dict] or as data_dict directly
-        if isinstance(params, list) and len(params) > 0:
-            data = params[0]
-        elif isinstance(params, dict):
-            data = params
-        else:
-            logger.warning(f"Unexpected params type for printer {printer_id} history: {type(params)}")
+        data = _extract_objects_from_params(printer_id, params)
+        if data is None:
             return
 
         action = data.get("action")
@@ -197,21 +214,7 @@ async def handle_history_changed(
 
         logger.debug(f"Printer {printer_id} history action: {action}")
 
-        if action == "finished":
-            await _sync_finished_job(printer_id, job, db)
-
-        elif action == "added":
-            await _sync_added_job(printer_id, job, db)
-
-        elif action == "deleted":
-            logger.debug(
-                f"Job {job.get('job_id')} deleted from printer {printer_id}"
-            )
-
-        else:
-            logger.debug(
-                f"Unknown history action '{action}' for printer {printer_id}"
-            )
+        await _handle_history_action(printer_id, action, job, db)
 
         # Update printer last_seen timestamp
         update_printer_last_seen(db, printer_id)
@@ -224,6 +227,83 @@ async def handle_history_changed(
     finally:
         if should_close_db:
             db.close()
+
+
+def _find_active_job(
+    printer_id: int, filename: str, db: Session
+) -> Optional[PrintJob]:
+    """
+    Find an active (printing/paused) job for this printer and filename.
+
+    Args:
+        printer_id: Printer ID
+        filename: Filename to search for
+        db: Database session
+
+    Returns:
+        PrintJob if found, None otherwise
+    """
+    return (
+        db.query(PrintJob)
+        .filter(
+            PrintJob.printer_id == printer_id,
+            PrintJob.filename == filename,
+            PrintJob.status.in_(["printing", "paused"]),
+        )
+        .order_by(PrintJob.start_time.desc())
+        .first()
+    )
+
+
+def _find_terminal_job(
+    printer_id: int, filename: str, db: Session
+) -> Optional[PrintJob]:
+    """
+    Find a terminal-state (completed/error/cancelled) job for this printer and filename.
+
+    Used to detect reprints and assign unique job IDs.
+
+    Args:
+        printer_id: Printer ID
+        filename: Filename to search for
+        db: Database session
+
+    Returns:
+        PrintJob if found, None otherwise
+    """
+    return (
+        db.query(PrintJob)
+        .filter(
+            PrintJob.printer_id == printer_id,
+            PrintJob.filename == filename,
+            PrintJob.status.in_(["cancelled", "error", "completed"]),
+        )
+        .order_by(PrintJob.start_time.desc())
+        .first()
+    )
+
+
+def _generate_synthetic_job_id(
+    filename: str, printer_id: int, has_terminal_job: bool
+) -> str:
+    """
+    Generate a synthetic job ID for a new printing job.
+
+    If a terminal-state job exists for this filename, adds a timestamp to make
+    the ID unique (issue #17: prevent overwriting cancelled/error jobs on reprint).
+
+    Args:
+        filename: Print filename
+        printer_id: Printer ID
+        has_terminal_job: Whether a terminal-state job exists
+
+    Returns:
+        Synthetic job ID
+    """
+    if has_terminal_job:
+        timestamp = int(datetime.now(UTC).timestamp())
+        return f"active-{filename}-{printer_id}-{timestamp}"
+    return f"active-{filename}-{printer_id}"
 
 
 async def _handle_printing_state(
@@ -250,18 +330,8 @@ async def _handle_printing_state(
         filament_used: Current filament used in mm
         db: Database session
     """
-    # First, check if there's already a printing/paused job for this file
-    # (could be from history import with real Moonraker job_id)
-    existing_job = (
-        db.query(PrintJob)
-        .filter(
-            PrintJob.printer_id == printer_id,
-            PrintJob.filename == filename,
-            PrintJob.status.in_(["printing", "paused"]),
-        )
-        .order_by(PrintJob.start_time.desc())
-        .first()
-    )
+    # Check if there's already a printing/paused job for this file
+    existing_job = _find_active_job(printer_id, filename, db)
 
     if existing_job:
         # Update existing job's metrics
@@ -272,30 +342,16 @@ async def _handle_printing_state(
         logger.debug(f"Updated existing job {existing_job.id} for printer {printer_id}")
         return
 
-    # Check if there's a terminal-state job with this filename
-    # (issue #17: prevent overwriting cancelled/error jobs on reprint)
-    terminal_job = (
-        db.query(PrintJob)
-        .filter(
-            PrintJob.printer_id == printer_id,
-            PrintJob.filename == filename,
-            PrintJob.status.in_(["cancelled", "error", "completed"]),
-        )
-        .order_by(PrintJob.start_time.desc())
-        .first()
-    )
+    # Check for terminal-state job to determine unique job_id
+    terminal_job = _find_terminal_job(printer_id, filename, db)
 
-    # Generate synthetic job_id - if we have a terminal-state job, add timestamp to make unique
     if terminal_job:
-        # Add Unix timestamp to create unique job_id for new print attempt
-        timestamp = int(datetime.now(UTC).timestamp())
-        job_id = f"active-{filename}-{printer_id}-{timestamp}"
         logger.debug(
             f"Terminal-state job found for {filename} on printer {printer_id}; "
             f"creating new job with unique ID"
         )
-    else:
-        job_id = f"active-{filename}-{printer_id}"
+
+    job_id = _generate_synthetic_job_id(filename, printer_id, terminal_job is not None)
 
     job = upsert_print_job(
         db,
@@ -455,6 +511,26 @@ async def _handle_standby_state(
         logger.info(f"Cleaned up {len(stale_jobs)} stale jobs for printer {printer_id}")
 
 
+def _parse_timestamp(timestamp_value) -> datetime:
+    """
+    Parse a timestamp value from Moonraker job data.
+
+    Handles None, 0, invalid values gracefully by returning current UTC time.
+
+    Args:
+        timestamp_value: Timestamp value (float/int/None)
+
+    Returns:
+        Parsed datetime in UTC, or current UTC time if parsing fails
+    """
+    if timestamp_value:
+        try:
+            return datetime.fromtimestamp(timestamp_value)
+        except (ValueError, TypeError):
+            pass
+    return datetime.now(UTC)
+
+
 async def _sync_finished_job(
     printer_id: int, job_data: dict, db: Session
 ) -> None:
@@ -470,20 +546,9 @@ async def _sync_finished_job(
     filename = _strip_cache_path(job_data.get("filename", "unknown"))
     status = job_data.get("status", "completed")
 
-    # Convert timestamp fields if present
-    start_time = datetime.now(UTC)
-    if "start_time" in job_data and job_data["start_time"]:
-        try:
-            start_time = datetime.fromtimestamp(job_data["start_time"])
-        except (ValueError, TypeError):
-            pass
-
-    end_time = datetime.now(UTC)
-    if "end_time" in job_data and job_data["end_time"]:
-        try:
-            end_time = datetime.fromtimestamp(job_data["end_time"])
-        except (ValueError, TypeError):
-            pass
+    # Parse timestamps
+    start_time = _parse_timestamp(job_data.get("start_time"))
+    end_time = _parse_timestamp(job_data.get("end_time"))
 
     print_duration = job_data.get("print_duration", 0.0)
     total_duration = job_data.get("total_duration", 0.0)
