@@ -58,6 +58,27 @@ def _get_db_session() -> Session:
     return SessionLocal()
 
 
+def _extract_objects_from_params(printer_id: int, params) -> Optional[dict]:
+    """
+    Extract objects dictionary from Moonraker params.
+
+    Handles both list format [objects_dict, eventtime] and dict format.
+
+    Args:
+        printer_id: Printer ID for logging
+        params: Raw parameters from Moonraker
+
+    Returns:
+        Objects dictionary or None if extraction fails
+    """
+    if isinstance(params, list) and len(params) > 0:
+        return params[0]
+    if isinstance(params, dict):
+        return params
+    logger.warning(f"Unexpected params type for printer {printer_id}: {type(params)}")
+    return None
+
+
 async def handle_status_update(
     printer_id: int, params, db: Optional[Session] = None
 ) -> None:
@@ -78,13 +99,8 @@ async def handle_status_update(
         should_close_db = True
 
     try:
-        # Moonraker sends params as [objects_dict, eventtime]
-        if isinstance(params, list) and len(params) > 0:
-            objects = params[0]
-        elif isinstance(params, dict):
-            objects = params
-        else:
-            logger.warning(f"Unexpected params type for printer {printer_id}: {type(params)}")
+        objects = _extract_objects_from_params(printer_id, params)
+        if objects is None:
             return
 
         print_stats = objects.get("print_stats", {})
@@ -110,34 +126,24 @@ async def handle_status_update(
         print_duration = print_duration or 0.0
         filament_used = filament_used or 0.0
 
-        logger.debug(
-            f"Printer {printer_id} status: {state} - {filename}"
-        )
+        logger.debug(f"Printer {printer_id} status: {state} - {filename}")
 
         # Handle state transitions
         if state == "printing":
-            # Create or update active job
             await _handle_printing_state(
                 printer_id, filename, print_duration, filament_used, db
             )
-
         elif state == "paused":
-            # Update job status to paused
             await _handle_paused_state(
                 printer_id, filename, print_duration, filament_used, db
             )
-
         elif state in ["complete", "error"]:
-            # Finalize job
             await _handle_completion_state(
                 printer_id, state, filename, print_duration, filament_used, db
             )
-
         elif state == "standby":
-            # Idle state - clean up any stale printing jobs
             await _handle_standby_state(printer_id, db)
             logger.debug(f"Printer {printer_id} is on standby")
-
         else:
             logger.warning(f"Unknown state '{state}' for printer {printer_id}")
 

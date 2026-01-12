@@ -178,94 +178,24 @@ class GcodeParser:
             if not line.startswith(";"):
                 continue
 
-            # Try to extract slicer info
-            slicer_match = self.PATTERNS["slicer"].match(line)
-            if slicer_match:
-                metadata.slicer_name = slicer_match.group(1)
-                metadata.slicer_version = slicer_match.group(2)
+            # Try handlers in order of specificity
+            if self._handle_slicer_info(metadata, line):
                 continue
-
-            # Try to extract estimated time
-            time_match = self.PATTERNS["time"].match(line)
-            if time_match:
-                metadata.estimated_time = self._parse_time(time_match.group(1))
+            if self._handle_estimated_time(metadata, line):
                 continue
-
-            # NEW: Extract multi-filament usage arrays (Issue #5)
-            filament_mm_match = self.PATTERNS["filament_used_mm"].match(line)
-            if filament_mm_match:
-                metadata.filament_used_mm = self._parse_float_array(
-                    filament_mm_match.group(1)
-                )
+            if self._handle_filament_metadata(metadata, line):
                 continue
-
-            filament_cm3_match = self.PATTERNS["filament_used_cm3"].match(line)
-            if filament_cm3_match:
-                metadata.filament_used_cm3 = self._parse_float_array(
-                    filament_cm3_match.group(1)
-                )
+            if self._handle_total_filament(metadata, line):
                 continue
-
-            # filament_used_g and filament_used are the same pattern, extract both
-            filament_g_match = self.PATTERNS["filament_used_g"].match(line)
-            if filament_g_match:
-                # Extract array for new field
-                metadata.filament_used_g = self._parse_float_array(
-                    filament_g_match.group(1)
-                )
-                # Also extract first value for legacy estimated_filament field
-                metadata.estimated_filament = self._parse_first_value(
-                    filament_g_match.group(1), separator=","
-                )
+            if self._handle_config_or_header(metadata, raw_data, line):
                 continue
-
-            filament_cost_match = self.PATTERNS["filament_cost"].match(line)
-            if filament_cost_match:
-                metadata.filament_cost = self._parse_float_array(
-                    filament_cost_match.group(1)
-                )
-                continue
-
-            # NEW: Extract total values (Issue #5)
-            total_filament_g_match = self.PATTERNS["total_filament_used_g"].match(line)
-            if total_filament_g_match:
-                try:
-                    metadata.total_filament_used_g = float(total_filament_g_match.group(1))
-                except ValueError:
-                    pass
-                continue
-
-            total_cost_match = self.PATTERNS["total_filament_cost"].match(line)
-            if total_cost_match:
-                try:
-                    metadata.total_filament_cost = float(total_cost_match.group(1))
-                except ValueError:
-                    pass
-                continue
-
-            # Try config format: "; key = value"
-            config_match = self.PATTERNS["config"].match(line)
-            if config_match:
-                key = config_match.group(1).strip()
-                value = config_match.group(2).strip()
-                raw_data[key] = value
-                self._set_field(metadata, key, value)
-                continue
-
-            # Try header format: "; key: value"
-            header_match = self.PATTERNS["header"].match(line)
-            if header_match:
-                key = header_match.group(1).strip()
-                value = header_match.group(2).strip()
-                raw_data[key] = value
-                self._set_field(metadata, key, value)
 
         metadata.raw_metadata = raw_data
 
         # Extract thumbnail (separate pass for multi-line parsing)
         metadata.thumbnail_base64 = self._extract_thumbnail(content)
 
-        # NEW: Extract config block (Issue #5)
+        # Extract config block (Issue #5)
         metadata.config_block = self._extract_config_block(content)
 
         return metadata
@@ -290,6 +220,99 @@ class GcodeParser:
         content = file_path.read_text(encoding="utf-8", errors="ignore")
         return self.parse(content)
 
+    def _handle_slicer_info(self, metadata: GcodeMetadata, line: str) -> bool:
+        """Handle slicer info extraction."""
+        match = self.PATTERNS["slicer"].match(line)
+        if match:
+            metadata.slicer_name = match.group(1)
+            metadata.slicer_version = match.group(2)
+            return True
+        return False
+
+    def _handle_estimated_time(self, metadata: GcodeMetadata, line: str) -> bool:
+        """Handle estimated time extraction."""
+        match = self.PATTERNS["time"].match(line)
+        if match:
+            metadata.estimated_time = self._parse_time(match.group(1))
+            return True
+        return False
+
+    def _handle_filament_metadata(self, metadata: GcodeMetadata, line: str) -> bool:
+        """Handle multi-filament usage arrays (mm, cm3, g, cost)."""
+        # filament used [mm]
+        match = self.PATTERNS["filament_used_mm"].match(line)
+        if match:
+            metadata.filament_used_mm = self._parse_float_array(match.group(1))
+            return True
+
+        # filament used [cm3]
+        match = self.PATTERNS["filament_used_cm3"].match(line)
+        if match:
+            metadata.filament_used_cm3 = self._parse_float_array(match.group(1))
+            return True
+
+        # filament used [g] - extract both array and first value for legacy field
+        match = self.PATTERNS["filament_used_g"].match(line)
+        if match:
+            value_str = match.group(1)
+            metadata.filament_used_g = self._parse_float_array(value_str)
+            metadata.estimated_filament = self._parse_first_value(value_str, separator=",")
+            return True
+
+        # filament cost
+        match = self.PATTERNS["filament_cost"].match(line)
+        if match:
+            metadata.filament_cost = self._parse_float_array(match.group(1))
+            return True
+
+        return False
+
+    def _handle_total_filament(self, metadata: GcodeMetadata, line: str) -> bool:
+        """Handle total filament values."""
+        # total filament used [g]
+        match = self.PATTERNS["total_filament_used_g"].match(line)
+        if match:
+            try:
+                metadata.total_filament_used_g = float(match.group(1))
+            except ValueError:
+                pass
+            return True
+
+        # total filament cost
+        match = self.PATTERNS["total_filament_cost"].match(line)
+        if match:
+            try:
+                metadata.total_filament_cost = float(match.group(1))
+            except ValueError:
+                pass
+            return True
+
+        return False
+
+    def _handle_config_or_header(
+        self, metadata: GcodeMetadata, raw_data: dict, line: str
+    ) -> bool:
+        """Handle config and header format lines."""
+        # Try config format: "; key = value"
+        match = self.PATTERNS["config"].match(line)
+        if match:
+            key = match.group(1).strip()
+            value = match.group(2).strip()
+            raw_data[key] = value
+            self._set_field(metadata, key, value)
+            return True
+
+        # Try header format: "; key: value"
+        match = self.PATTERNS["header"].match(line)
+        if match:
+            key = match.group(1).strip()
+            value = match.group(2).strip()
+            raw_data[key] = value
+            self._set_field(metadata, key, value)
+            return True
+
+        return False
+
     def _set_field(self, metadata: GcodeMetadata, key: str, value: str) -> None:
         """
         Set a metadata field based on the gcode key.
@@ -304,34 +327,61 @@ class GcodeParser:
             return
 
         try:
-            if field_name == "layer_height":
-                metadata.layer_height = float(value)
-            elif field_name == "first_layer_height":
-                metadata.first_layer_height = float(value)
-            elif field_name == "nozzle_temp":
-                metadata.nozzle_temp = self._parse_first_int(value)
-            elif field_name == "bed_temp":
-                metadata.bed_temp = self._parse_first_int(value)
-            elif field_name == "print_speed":
-                metadata.print_speed = int(float(value))
-            elif field_name == "infill_percentage":
-                metadata.infill_percentage = self._parse_percentage(value)
-            elif field_name == "infill_pattern":
-                metadata.infill_pattern = value
-            elif field_name == "support_type":
-                metadata.support_type = value
-                metadata.support_enabled = value.lower() != "none"
-            elif field_name == "filament_type":
-                metadata.filament_type = self._parse_first_value(value, separator=";")
-            elif field_name == "filament_color":
-                metadata.filament_color = self._parse_first_value(value, separator=";")
-            elif field_name == "layer_count":
-                metadata.layer_count = int(value)
-            elif field_name == "object_height":
-                metadata.object_height = float(value)
+            setter = getattr(self, f"_set_{field_name}", None)
+            if setter:
+                setter(metadata, value)
         except (ValueError, TypeError):
             # If parsing fails, leave the field as None
             pass
+
+    def _set_layer_height(self, metadata: GcodeMetadata, value: str) -> None:
+        """Set layer height (float)."""
+        metadata.layer_height = float(value)
+
+    def _set_first_layer_height(self, metadata: GcodeMetadata, value: str) -> None:
+        """Set first layer height (float)."""
+        metadata.first_layer_height = float(value)
+
+    def _set_nozzle_temp(self, metadata: GcodeMetadata, value: str) -> None:
+        """Set nozzle temperature (first value from comma-separated)."""
+        metadata.nozzle_temp = self._parse_first_int(value)
+
+    def _set_bed_temp(self, metadata: GcodeMetadata, value: str) -> None:
+        """Set bed temperature (first value from comma-separated)."""
+        metadata.bed_temp = self._parse_first_int(value)
+
+    def _set_print_speed(self, metadata: GcodeMetadata, value: str) -> None:
+        """Set print speed (int)."""
+        metadata.print_speed = int(float(value))
+
+    def _set_infill_percentage(self, metadata: GcodeMetadata, value: str) -> None:
+        """Set infill percentage (percent to int)."""
+        metadata.infill_percentage = self._parse_percentage(value)
+
+    def _set_infill_pattern(self, metadata: GcodeMetadata, value: str) -> None:
+        """Set infill pattern (string)."""
+        metadata.infill_pattern = value
+
+    def _set_support_type(self, metadata: GcodeMetadata, value: str) -> None:
+        """Set support type and enabled flag."""
+        metadata.support_type = value
+        metadata.support_enabled = value.lower() != "none"
+
+    def _set_filament_type(self, metadata: GcodeMetadata, value: str) -> None:
+        """Set filament type (first value from semicolon-separated)."""
+        metadata.filament_type = self._parse_first_value(value, separator=";")
+
+    def _set_filament_color(self, metadata: GcodeMetadata, value: str) -> None:
+        """Set filament color (first value from semicolon-separated)."""
+        metadata.filament_color = self._parse_first_value(value, separator=";")
+
+    def _set_layer_count(self, metadata: GcodeMetadata, value: str) -> None:
+        """Set layer count (int)."""
+        metadata.layer_count = int(value)
+
+    def _set_object_height(self, metadata: GcodeMetadata, value: str) -> None:
+        """Set object height (float)."""
+        metadata.object_height = float(value)
 
     def _parse_first_int(self, value: str) -> Optional[int]:
         """Parse the first integer from a comma-separated list."""
@@ -495,38 +545,20 @@ class GcodeParser:
         Returns:
             Base64-encoded PNG data for the largest thumbnail, or None.
         """
-        thumbnails = []  # List of (width, height, base64_data)
+        thumbnails = []
         lines = content.split("\n")
         i = 0
 
         while i < len(lines):
             line = lines[i].strip()
-
-            # Check for thumbnail begin
             begin_match = self.PATTERNS["thumbnail_begin"].match(line)
+
             if begin_match:
                 width = int(begin_match.group(1))
                 height = int(begin_match.group(2))
-                # Collect base64 lines until thumbnail end
-                base64_lines = []
-                i += 1
+                base64_data, i = self._collect_thumbnail_data(lines, i + 1)
 
-                while i < len(lines):
-                    thumb_line = lines[i].strip()
-
-                    # Check for thumbnail end
-                    if self.PATTERNS["thumbnail_end"].match(thumb_line):
-                        break
-
-                    # Extract base64 data (strip comment prefix)
-                    if thumb_line.startswith(";"):
-                        data = thumb_line[1:].strip()
-                        if data:  # Skip empty comment lines
-                            base64_lines.append(data)
-                    i += 1
-
-                if base64_lines:
-                    base64_data = "".join(base64_lines)
+                if base64_data:
                     thumbnails.append((width, height, base64_data))
 
             i += 1
@@ -537,3 +569,35 @@ class GcodeParser:
         # Select the largest thumbnail (by area)
         largest = max(thumbnails, key=lambda t: t[0] * t[1])
         return largest[2]
+
+    def _collect_thumbnail_data(
+        self, lines: List[str], start_index: int
+    ) -> tuple[Optional[str], int]:
+        """
+        Collect base64 data from thumbnail block.
+
+        Reads lines from start_index until "thumbnail end" is found,
+        returning the concatenated base64 data and the index of the "thumbnail end" line.
+
+        Args:
+            lines: All content lines.
+            start_index: Starting index to read from.
+
+        Returns:
+            Tuple of (base64_data, next_index) or (None, start_index) if no data found.
+        """
+        base64_lines = []
+
+        for i in range(start_index, len(lines)):
+            thumb_line = lines[i].strip()
+
+            if self.PATTERNS["thumbnail_end"].match(thumb_line):
+                break
+
+            if thumb_line.startswith(";"):
+                data = thumb_line[1:].strip()
+                if data:  # Skip empty comment lines
+                    base64_lines.append(data)
+
+        base64_data = "".join(base64_lines) if base64_lines else None
+        return base64_data, i
