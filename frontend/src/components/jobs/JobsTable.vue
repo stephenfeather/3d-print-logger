@@ -47,7 +47,7 @@ function getStatusLabel(status: string): string {
 
 function normalizeTitle(filename: string): string {
   const name = filename.includes('.') ? filename.split('.').slice(0, -1).join('.') : filename
-  return name.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  return name.replaceAll(/[_-]+/, ' ').replaceAll(/\b\w/, (c) => c.toUpperCase())
 }
 
 function getDisplayTitle(job: PrintJob): string {
