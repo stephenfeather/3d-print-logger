@@ -640,3 +640,72 @@ class TestHandlerEdgeCases:
         assert job.end_time is not None
         assert job.end_time.tzinfo is not None
         assert job.end_time.tzinfo == UTC
+
+    @pytest.mark.asyncio
+    async def test_cancelled_job_not_overwritten_on_reprint(self, db_session, sample_printer):
+        """Test that reprinting a file after cancellation creates a new job.
+
+        This tests issue #17: Synthetic job IDs can overwrite cancelled/failed job records on reprint
+        https://github.com/user/repo/issues/17
+
+        Bug scenario:
+        1. Start printing benchy.gcode → creates synthetic job "active-benchy.gcode-1"
+        2. Cancel print → job updated to "cancelled"
+        3. Reprint benchy.gcode → should create NEW record, but was overwriting cancelled one
+        """
+        # Step 1: Start printing benchy.gcode
+        params = {
+            "print_stats": {
+                "state": "printing",
+                "filename": "benchy.gcode",
+                "print_duration": 0.0,
+                "filament_used": 0.0,
+            }
+        }
+
+        await handle_status_update(sample_printer.id, params, db_session)
+
+        jobs = get_jobs_by_printer(db_session, sample_printer.id)
+        assert len(jobs) == 1
+        first_job = jobs[0]
+        assert first_job.status == "printing"
+        assert first_job.filename == "benchy.gcode"
+
+        # Step 2: Cancel the print (transition to standby)
+        params = {
+            "print_stats": {
+                "state": "standby",
+                "filename": "",
+                "print_duration": 100.0,
+                "filament_used": 50.0,
+            }
+        }
+
+        await handle_status_update(sample_printer.id, params, db_session)
+
+        db_session.refresh(first_job)
+        assert first_job.status == "cancelled"
+
+        # Step 3: Reprint the same file
+        params = {
+            "print_stats": {
+                "state": "printing",
+                "filename": "benchy.gcode",
+                "print_duration": 0.0,
+                "filament_used": 0.0,
+            }
+        }
+
+        await handle_status_update(sample_printer.id, params, db_session)
+
+        # Verify we have TWO jobs now, not one
+        jobs = get_jobs_by_printer(db_session, sample_printer.id)
+        assert len(jobs) == 2, f"Should have 2 jobs (original cancelled + new printing), got {len(jobs)}"
+
+        # Verify the first job is still cancelled
+        assert first_job.status == "cancelled"
+
+        # Verify the second job is printing
+        new_job = next(j for j in jobs if j.id != first_job.id)
+        assert new_job.status == "printing"
+        assert new_job.filename == "benchy.gcode"

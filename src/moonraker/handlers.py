@@ -234,6 +234,9 @@ async def _handle_printing_state(
     updates) for this printer + filename. If found, updates its metrics.
     Otherwise creates a synthetic job.
 
+    Fixes issue #17: If reprinting after cancellation/error, creates a new job
+    instead of overwriting the terminal-state job.
+
     Args:
         printer_id: Printer ID
         filename: Current print filename
@@ -241,7 +244,7 @@ async def _handle_printing_state(
         filament_used: Current filament used in mm
         db: Database session
     """
-    # First, check if there's already a printing job for this file
+    # First, check if there's already a printing/paused job for this file
     # (could be from history import with real Moonraker job_id)
     existing_job = (
         db.query(PrintJob)
@@ -263,8 +266,30 @@ async def _handle_printing_state(
         logger.debug(f"Updated existing job {existing_job.id} for printer {printer_id}")
         return
 
-    # No existing job - create a synthetic one
-    job_id = f"active-{filename}-{printer_id}"
+    # Check if there's a terminal-state job with this filename
+    # (issue #17: prevent overwriting cancelled/error jobs on reprint)
+    terminal_job = (
+        db.query(PrintJob)
+        .filter(
+            PrintJob.printer_id == printer_id,
+            PrintJob.filename == filename,
+            PrintJob.status.in_(["cancelled", "error", "completed"]),
+        )
+        .order_by(PrintJob.start_time.desc())
+        .first()
+    )
+
+    # Generate synthetic job_id - if we have a terminal-state job, add timestamp to make unique
+    if terminal_job:
+        # Add Unix timestamp to create unique job_id for new print attempt
+        timestamp = int(datetime.now(UTC).timestamp())
+        job_id = f"active-{filename}-{printer_id}-{timestamp}"
+        logger.debug(
+            f"Terminal-state job found for {filename} on printer {printer_id}; "
+            f"creating new job with unique ID"
+        )
+    else:
+        job_id = f"active-{filename}-{printer_id}"
 
     job = upsert_print_job(
         db,
