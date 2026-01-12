@@ -245,9 +245,6 @@ class TestMoonrakerManagerRecovery:
         MoonrakerManager._instance = None
         manager = MoonrakerManager.get_instance()
 
-        # Store initial last_seen
-        initial_last_seen = sample_printer.last_seen
-
         mock_client = AsyncMock()
         with patch("src.moonraker.manager.MoonrakerClient", return_value=mock_client):
             await manager.connect_printer(sample_printer)

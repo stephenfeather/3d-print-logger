@@ -320,7 +320,7 @@ class TestEdgeCases:
     def test_missing_equals_sign(self):
         """Handle lines without equals sign."""
         parser = GcodeParser()
-        result = parser.parse("; layer_height 0.2\n")
+        parser.parse("; layer_height 0.2\n")
         # Should not crash, just not parse this line
         # (unless it's a header format like "; total layer number: 70")
 

@@ -222,7 +222,7 @@ async def import_printer_history(
     stats = {"imported": 0, "updated": 0, "skipped": 0, "errors": 0}
 
     try:
-        jobs, total = await fetch_moonraker_history(moonraker_url, limit=limit)
+        jobs, _ = await fetch_moonraker_history(moonraker_url, limit=limit)
     except Exception as e:
         logger.error(f"Failed to fetch history for printer {printer_id}: {e}")
         return {"imported": 0, "updated": 0, "skipped": 0, "errors": 1}
@@ -230,7 +230,7 @@ async def import_printer_history(
     logger.info(f"Importing {len(jobs)} jobs for printer {printer_id}")
 
     for job_data in jobs:
-        success, reason = import_job_from_moonraker(
+        _, reason = import_job_from_moonraker(
             db, printer_id, job_data, moonraker_url=moonraker_url
         )
 

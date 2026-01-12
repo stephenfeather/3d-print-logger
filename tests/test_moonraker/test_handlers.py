@@ -47,7 +47,7 @@ class TestStatusUpdateHandler:
     async def test_handle_paused_state_updates_job(self, db_session, sample_printer):
         """Test handle_status_update updates existing job when state is paused."""
         # Create initial job
-        initial_job = upsert_print_job(
+        upsert_print_job(
             db_session,
             printer_id=sample_printer.id,
             job_id="test-job-123",
@@ -79,7 +79,7 @@ class TestStatusUpdateHandler:
     async def test_handle_completed_state_finalizes_job(self, db_session, sample_printer):
         """Test handle_status_update finalizes job when state is complete."""
         start_time = datetime.now(UTC)
-        initial_job = upsert_print_job(
+        upsert_print_job(
             db_session,
             printer_id=sample_printer.id,
             job_id="test-job-123",
@@ -112,7 +112,7 @@ class TestStatusUpdateHandler:
     async def test_handle_error_state_marks_job_failed(self, db_session, sample_printer):
         """Test handle_status_update marks job as error."""
         start_time = datetime.now(UTC)
-        initial_job = upsert_print_job(
+        upsert_print_job(
             db_session,
             printer_id=sample_printer.id,
             job_id="test-job-456",
@@ -229,7 +229,7 @@ class TestStatusUpdateHandler:
         """Test handle_status_update updates JobTotals when job completes."""
         # Create and complete a job
         start_time = datetime.now(UTC)
-        initial_job = upsert_print_job(
+        upsert_print_job(
             db_session,
             printer_id=sample_printer.id,
             job_id="test-job-789",
@@ -541,7 +541,7 @@ class TestHandlerEdgeCases:
     async def test_handler_preserves_existing_data(self, db_session, sample_printer):
         """Test handler doesn't overwrite important data during updates."""
         start_time = datetime.now(UTC)
-        initial_job = upsert_print_job(
+        upsert_print_job(
             db_session,
             printer_id=sample_printer.id,
             job_id="preserve-job",

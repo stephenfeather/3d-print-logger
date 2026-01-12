@@ -759,8 +759,6 @@ class TestTimestampUpdates:
         """updated_at changes when model is updated."""
         import time
 
-        original_updated = sample_printer.updated_at
-
         # Wait a tiny bit to ensure timestamp changes
         time.sleep(0.01)
 

@@ -176,8 +176,6 @@ class TestInitDatabase:
         from src.database.models import Printer, PrintJob, JobDetails, JobTotals, ApiKey
 
         # Tables should exist after init
-        inspector = db_engine.dialect.has_table
-
         # Check via metadata
         assert "printers" in Base.metadata.tables
         assert "print_jobs" in Base.metadata.tables
